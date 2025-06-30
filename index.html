@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业质量与标准化文档体系智能体</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <i class='bx bx-cube-alt'></i>
+                <h1>企业质量与标准化文档体系智能体</h1>
+            </div>
+            <div class="user-info">
+                <i class='bx bx-user-circle'></i>
+                <span>用户: 管理员</span>
+                <button class="btn-small"><i class='bx bx-chevron-down'></i></button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <nav class="sidebar">
+                <ul>
+                    <li class="active"><a href="#dashboard"><i class='bx bxs-dashboard'></i> 首页</a></li>
+                    <li><a href="#generate"><i class='bx bx-brain'></i> 文档体系智能生成</a></li>
+                    <li><a href="#diagnose"><i class='bx bx-search-alt'></i> 文档体系缺失诊断</a></li>
+                    <li><a href="#optimize"><i class='bx bx-bulb'></i> 优化建议</a></li>
+                    <li><a href="#knowledge"><i class='bx bx-network-chart'></i> 知识图谱</a></li>
+                    <li><a href="#settings"><i class='bx bx-cog'></i> 系统设置</a></li>
+                </ul>
+                
+            </nav>
+
+            <div class="content">
+                <!-- 首页面板 -->
+                <div id="dashboard" class="panel active">
+                    <div class="welcome-card">
+                        <div class="welcome-header">
+                            <i class='bx bx-bot'></i>
+                            <h2>欢迎使用文档体系智能体</h2>
+                        </div>
+                        <p>基于AI技术的企业质量与标准化文档体系管理平台</p>
+                        <div class="quick-actions">
+                            <button class="btn"><i class='bx bx-play'></i> 快速开始</button>
+                            <button class="btn"><i class='bx bx-history'></i> 最近项目</button>
+                            <button class="btn"><i class='bx bx-stats'></i> 系统状态</button>
+                            <button class="btn"><i class='bx bx-help-circle'></i> 帮助中心</button>
+                        </div>
+                    </div>
+
+                    <div class="cards-container">
+                        <div class="card">
+                            <div class="card-icon"><i class='bx bx-brain'></i></div>
+                            <h3>文档体系智能生成</h3>
+                            <p>基于企业业务描述，智能生成文档体系框架</p>
+                            <button class="btn" onclick="navigateToPage('generate')">开始生成</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon"><i class='bx bx-search-alt'></i></div>
+                            <h3>文档体系缺失诊断</h3>
+                            <p>分析现有文档，识别缺失项并提供补充建议</p>
+                            <button class="btn" onclick="navigateToPage('diagnose')">开始诊断</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon"><i class='bx bx-bulb'></i></div>
+                            <h3>优化建议</h3>
+                            <p>提供文档体系优化方案，提升管理效率</p>
+                            <button class="btn" onclick="navigateToPage('optimize')">查看建议</button>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <h3><i class='bx bx-data'></i> 知识库状态</h3>
+                        <div class="status-items">
+                            <div class="status-item">
+                                <span>行业标准:</span>
+                                <span class="status-ok">已更新 <i class='bx bx-check-circle'></i></span>
+                            </div>
+                            <div class="status-item">
+                                <span>企业文档:</span>
+                                <span class="status-ok">32份 <i class='bx bx-check-circle'></i></span>
+                            </div>
+                            <div class="status-item">
+                                <span>学习进度:</span>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 78%;"></div>
+                                </div>
+                                <span>78%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="recent-activity">
+                        <h3><i class='bx bx-time'></i> 最近活动</h3>
+                        <ul class="activity-list">
+                            <li>
+                                <i class='bx bx-file'></i>
+                                <div class="activity-info">
+                                    <p>更新了质量手册 v2.3</p>
+                                    <span class="activity-time">今天 14:32</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class='bx bx-search'></i>
+                                <div class="activity-info">
+                                    <p>完成了ISO 9001文档体系诊断</p>
+                                    <span class="activity-time">昨天 09:15</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i class='bx bx-bulb'></i>
+                                <div class="activity-info">
+                                    <p>生成了新的工作指导书模板</p>
+                                    <span class="activity-time">2023-06-12</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 知识图谱面板 -->
+                <div id="knowledge" class="panel">
+                    <h2><i class='bx bx-network-chart'></i> 知识图谱</h2>
+                    
+                    <div class="knowledge-tabs">
+                        <button class="tab-btn active" data-tab="graph-view">图谱视图</button>
+                        <button class="tab-btn" data-tab="triple-extraction">三元组抽取</button>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <!-- 图谱视图 -->
+                        <div id="graph-view" class="tab-pane active">
+                            <div class="graph-controls">
+                                <div class="form-group">
+                                    <label>图谱类型:</label>
+                                    <select id="graphType" class="form-select">
+                                        <option value="complete">完整视图</option>
+                                        <option value="standard">标准层视图</option>
+                                        <option value="enterprise">企业层视图</option>
+                                        <option value="process">流程层视图</option>
+                                        <option value="document">文档层视图</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>搜索实体:</label>
+                                    <input type="text" id="entitySearch" placeholder="输入实体名称搜索...">
+                                </div>
+                                <div class="form-group">
+                                    <button class="btn" id="refreshGraph"><i class='bx bx-refresh'></i> 刷新图谱</button>
+                                    <button class="btn btn-info" id="importSampleDataBtn" style="margin-left: 10px;"><i class='bx bx-download'></i> 导入示例数据到Neo4j</button>
+                                    <button class="btn btn-success" id="syncToNeo4j" style="margin-left: 10px;"><i class='bx bx-data'></i> 同步到Neo4j</button>
+                                </div>
+                            </div>
+                            
+                            <div class="graph-container" id="knowledgeGraph">
+                                <!-- 图谱将在这里渲染 -->
+                                <div class="graph-placeholder">
+                                    <i class='bx bx-network-chart'></i>
+                                    <p>选择图谱类型并点击刷新按钮查看知识图谱</p>
+                                </div>
+                            </div>
+                            
+                            
+                        </div>
+                        
+                        <!-- 实体管理 -->
+                        <div id="entity-management" class="tab-pane">
+                            <div class="entity-tools">
+                                <button class="btn" id="addEntity"><i class='bx bx-plus'></i> 添加实体</button>
+                                <button class="btn-secondary" id="importEntities"><i class='bx bx-import'></i> 批量导入</button>
+                                <div class="search-box">
+                                    <input type="text" placeholder="搜索实体...">
+                                    <i class='bx bx-search'></i>
+                                </div>
+                            </div>
+                            
+                            <div class="entity-table-container">
+                                <table class="entity-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>实体名称</th>
+                                            <th>实体类型</th>
+                                            <th>属性数量</th>
+                                            <th>关联关系</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="entityTableBody">
+                                        <!-- 实体数据将动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 关系管理 -->
+                        <div id="relation-management" class="tab-pane">
+                            <div class="relation-tools">
+                                <button class="btn" id="addRelation"><i class='bx bx-plus'></i> 添加关系</button>
+                                <button class="btn-secondary" id="importRelations"><i class='bx bx-import'></i> 批量导入</button>
+                                <div class="search-box">
+                                    <input type="text" placeholder="搜索关系...">
+                                    <i class='bx bx-search'></i>
+                                </div>
+                            </div>
+                            
+                            <div class="relation-table-container">
+                                <table class="relation-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>源实体</th>
+                                            <th>关系类型</th>
+                                            <th>目标实体</th>
+                                            <th>置信度</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="relationTableBody">
+                                        <!-- 关系数据将动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 三元组抽取 -->
+                        <div id="triple-extraction" class="tab-pane">
+                            <div class="extraction-container">
+                                <div class="extraction-input">
+                                    <h3><i class='bx bx-text'></i> 文本输入</h3>
+                                    <textarea id="extractionText" rows="8" placeholder="输入文本内容，系统将自动抽取三元组..."></textarea>
+                                    <div class="button-group">
+                                        <button class="btn" id="extractTriples"><i class='bx bx-analyse'></i> 开始抽取</button>
+                                        <button class="btn-secondary" id="uploadForExtraction"><i class='bx bx-upload'></i> 上传文档</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="extraction-results">
+                                    <h3><i class='bx bx-list-ul'></i> 抽取结果</h3>
+                                    <div class="results-container" id="triplesContainer">
+                                        <p class="no-results">尚未抽取任何三元组</p>
+                                    </div>
+                                    <div class="button-group">
+                                        <button class="btn" id="saveTriples" disabled><i class='bx bx-save'></i> 保存到图谱</button>
+                                        <button class="btn-secondary" id="exportTriples" disabled><i class='bx bx-export'></i> 导出结果</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 优化建议面板 -->
+                <div id="optimize" class="panel">
+                    <h2><i class='bx bx-bulb'></i> 优化建议</h2>
+                    <!-- 优化建议内容 -->
+                </div>
+
+                <!-- 文档体系智能生成面板 -->
+                <div id="generate" class="panel">
+                    <h2><i class='bx bx-file-plus'></i> 文档体系智能生成</h2>
+                    
+                    <div class="generation-container">
+                        <div class="business-description">
+                            <h3><i class='bx bx-building'></i> 企业业务描述</h3>
+                            <textarea id="businessDescription" rows="6" placeholder="请描述您的企业业务范围、主要产品或服务、组织结构等信息..."></textarea>
+                            
+                            <div class="form-group">
+                                <label>行业类型:</label>
+                                <select id="industryType">
+                                    <option value="manufacturing">制造业</option>
+                                    <option value="service">服务业</option>
+                                    <option value="technology">科技行业</option>
+                                    <option value="healthcare">医疗健康</option>
+                                    <option value="food">食品行业</option>
+                                    <option value="other">其他行业</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>参照标准:</label>
+                                <select id="referenceStandardGen">
+                                    <option value="iso9001">ISO 9001:2015</option>
+                                    <option value="iso14001">ISO 14001:2015</option>
+                                    <option value="iatf16949">IATF 16949:2016</option>
+                                    <option value="haccp">HACCP</option>
+                                    <option value="custom">自定义标准</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn" id="startAnalysis"><i class='bx bx-analyse'></i> 开始智能分析</button>
+                        </div>
+                        
+                        <div class="analysis-results">
+                            <h3><i class='bx bx-list-check'></i> 分析结果</h3>
+                            <p>分析状态: <span id="analysisStatus">未开始</span></p>
+                            
+                            <div class="result-item">
+                                <h4>识别的部门:</h4>
+                                <p id="departments">-</p>
+                            </div>
+                            
+                            <div class="result-item">
+                                <h4>主要产品/服务:</h4>
+                                <p id="products">-</p>
+                            </div>
+                            
+                            <div class="result-item">
+                                <h4>关键业务流程:</h4>
+                                <p id="processes">-</p>
+                            </div>
+                            
+                            <button class="btn" id="generateFramework" disabled><i class='bx bx-file-blank'></i> 生成文档体系框架</button>
+                        </div>
+                    </div>
+                    
+                    <div class="framework-preview" id="frameworkPreview" style="display: none;">
+                        <h3><i class='bx bx-file-find'></i> 文档体系框架预览</h3>
+                        
+                        <div class="framework-tree">
+                            <ul id="documentTree">
+                                <!-- 文档体系树将在这里动态生成 -->
+                            </ul>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button class="btn" id="downloadFramework"><i class='bx bx-download'></i> 下载框架</button>
+                            <button class="btn-secondary" id="editFramework"><i class='bx bx-edit'></i> 编辑框架</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文档体系缺失诊断面板 -->
+                <div id="diagnose" class="panel">
+                    <h2><i class='bx bx-search-alt'></i> 文档体系缺失诊断</h2>
+                    
+                    <div class="upload-section">
+                        <h3>上传文档</h3>
+                        <p>请上传您的企业文档，系统将自动分析并诊断文档体系中的缺失项</p>
+                        
+                        <div class="upload-area" id="uploadArea">
+                            <i class='bx bx-cloud-upload'></i>
+                            <p>拖放文件到此处或点击上传</p>
+                            <span>支持 .doc, .docx, .pdf, .txt 格式</span>
+                            <input type="file" id="fileUpload" multiple style="display: none;">
+                        </div>
+                        
+                        <div class="uploaded-files">
+                            <h4>已上传文件</h4>
+                            <ul id="fileList">
+                                <!-- 上传的文件将显示在这里 -->
+                            </ul>
+                        </div>
+                        
+                        <div class="diagnosis-settings">
+                            <h4>诊断设置</h4>
+                            <div class="form-group">
+                                <label>参照标准:</label>
+                                <select id="referenceStandard">
+                                    <option value="iso9001">ISO 9001:2015</option>
+                                    <option value="iso14001">ISO 14001:2015</option>
+                                    <option value="iatf16949">IATF 16949:2016</option>
+                                    <option value="custom">自定义标准</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>诊断深度:</label>
+                                <select id="diagnosisDepth">
+                                    <option value="basic">基础诊断</option>
+                                    <option value="standard">标准诊断</option>
+                                    <option value="deep">深度诊断</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button class="btn" id="startDiagnosis"><i class='bx bx-analyse'></i> 开始诊断</button>
+                    </div>
+                    
+                    <div class="diagnosis-results" style="display: none;">
+                        <h3>诊断结果</h3>
+                        <div class="result-summary">
+                            <div class="completeness">
+                                <h4>文档体系完整度</h4>
+                                <div class="progress-bar">
+                                    <div class="progress" id="completenessProgress" style="width: 0%;"></div>
+                                </div>
+                                <span id="completenessValue">0%</span>
+                            </div>
+                            
+                            <div class="health-score">
+                                <h4>文档健康度</h4>
+                                <div class="progress-bar">
+                                    <div class="progress" id="healthProgress" style="width: 0%;"></div>
+                                </div>
+                                <span id="healthValue">0%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="missing-documents">
+                            <h4>缺失文档</h4>
+                            <ul id="missingList">
+                                <!-- 缺失文档将显示在这里 -->
+                            </ul>
+                            <button class="btn" id="downloadMissingList"><i class='bx bx-download'></i> 下载缺失清单</button>
+                        </div>
+                        
+                        <div class="content-issues">
+                            <h4>内容问题</h4>
+                            <ul id="issuesList">
+                                <!-- 内容问题将显示在这里 -->
+                            </ul>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button class="btn" id="generateReport"><i class='bx bx-file'></i> 生成诊断报告</button>
+                            <button class="btn-secondary" id="newDiagnosis"><i class='bx bx-refresh'></i> 新诊断</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统设置面板 -->
+                <div id="settings" class="panel">
+                    <h2><i class='bx bx-cog'></i> 系统设置</h2>
+                    <!-- 系统设置内容 -->
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 企业质量与标准化文档体系智能体 | 技术支持: AI文档智能</p>
+        </footer>
+    </div>
+    
+    <!-- 引入图谱可视化库 -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.23.0/dist/cytoscape.min.js"></script>
+    <!-- 在head标签中添加以下库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.4.0/html-docx.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- 替换原来的 scripts.js 引用 -->
+    <script src="js/main.js"></script>
+    <script src="js/knowledge-graph.js"></script>
+    <script src="js/triple-extraction.js"></script>
+    <script src="js/document-generation.js"></script>
+    <script src="js/document-management.js"></script>
+    <script src="js/entity-management.js"></script>
+</body>
+</html>
+ 
