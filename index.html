@@ -358,6 +358,17 @@
                         <div class="diagnosis-settings">
                             <h4>诊断设置</h4>
                             <div class="form-group">
+                                <label>行业类型:</label>
+                                <select id="industryTypeDiagnosis">
+                                    <option value="manufacturing">制造业</option>
+                                    <option value="service">服务业</option>
+                                    <option value="technology">科技行业</option>
+                                    <option value="healthcare">医疗健康</option>
+                                    <option value="food">食品行业</option>
+                                    <option value="other">其他行业</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>参照标准:</label>
                                 <select id="referenceStandard">
                                     <option value="iso9001">ISO 9001:2015</option>
@@ -381,6 +392,14 @@
                     
                     <div class="diagnosis-results" style="display: none;">
                         <h3>诊断结果</h3>
+                        
+                        <!-- 添加JSON展示容器 -->
+                        <div class="json-result-container">
+                            <h4>原始诊断数据</h4>
+                            <pre id="jsonResult" class="json-display"></pre>
+                        </div>
+                        
+                        <!-- 保留基本的摘要信息 -->
                         <div class="result-summary">
                             <div class="completeness">
                                 <h4>文档体系完整度</h4>
@@ -440,15 +459,17 @@
     <!-- 在head标签中添加以下库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.4.0/html-docx.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <!-- 替换原来的 scripts.js 引用 -->
-    <script src="js/main.js"></script>
+    
+    <!-- 按正确顺序加载，删除重复的main.js -->
     <script src="js/knowledge-graph.js"></script>
     <script src="js/triple-extraction.js"></script>
     <script src="js/document-generation.js"></script>
-    <script src="js/document-management.js"></script>
     <script src="js/entity-management.js"></script>
+    <script src="js/document-management.js"></script>
+    <script src="js/diagnosis-management.js"></script>
+    <!-- main.js最后加载 -->
+    <script src="js/main.js"></script>
 </body>
 </html>
  

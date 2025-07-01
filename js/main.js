@@ -93,30 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 通用通知函数
-    window.showNotification = function(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <div class="notification-content">
-                <span>${message}</span>
-                <button class="notification-close">&times;</button>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 300);
-        }, 3000);
-    };
+    
 });
 
 // 页面导航函数
@@ -142,4 +119,13 @@ function navigateToPage(pageId) {
     if (targetPanel) {
         targetPanel.classList.add('active');
     }
+}
+
+// 初始化诊断管理器
+let diagnosisManager;
+if (typeof DiagnosisManager !== 'undefined') {
+    diagnosisManager = new DiagnosisManager();
+    console.log('DiagnosisManager initialized');
+} else {
+    console.warn('DiagnosisManager class not found');
 }

@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // 添加这行
 const { setupServer } = require('./config/server');
 const { knowledgeGraph } = require('./config/database');
 
@@ -18,13 +18,13 @@ const PORT = process.env.PORT || 3000;
 setupServer(app);
 
 // 注册路由
-app.use('/api', knowledgeGraphRoutes);
-app.use('/api', entitiesRoutes);
-app.use('/api', documentsRoutes);
-app.use('/api', documentGenerationRoutes);
+app.use('/api/knowledge-graph', knowledgeGraphRoutes);
+app.use('/api/entities', entitiesRoutes);
+app.use('/api/documents', documentsRoutes);
+app.use('/api/document-generation', documentGenerationRoutes);
 app.use('/api/neo4j', neo4jRoutes);
-app.use('/api', uploadRoutes);
-app.use('/api', dataRoutes);
+app.use('/api/upload', uploadRoutes); // 修改为具体路径
+app.use('/api/data', dataRoutes);
 
 // 启动服务器
 app.listen(PORT, async () => {

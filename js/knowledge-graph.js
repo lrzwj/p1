@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 // 从服务器获取对应类型的图谱数据
-                const response = await fetch(`/api/graph-data/${selectedType}`);
+                const response = await fetch(`/api/knowledge-graph/graph-data/${selectedType}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedType = graphType ? graphType.value : 'integrated';
             
             try {
-                const response = await fetch(`/api/graph-data/${selectedType}`);
+                const response = await fetch(`/api/knowledge-graph/graph-data/${selectedType}`);
                 const result = await response.json();
                 
                 if (result.success) {
