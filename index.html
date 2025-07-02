@@ -29,6 +29,7 @@
                     <li><a href="#diagnose"><i class='bx bx-search-alt'></i> 文档体系缺失诊断</a></li>
                     <li><a href="#optimize"><i class='bx bx-bulb'></i> 优化建议</a></li>
                     <li><a href="#knowledge"><i class='bx bx-network-chart'></i> 知识图谱</a></li>
+                    <li><a href="#help"><i class='bx bx-help-circle'></i> 帮助中心</a></li>
                     <li><a href="#settings"><i class='bx bx-cog'></i> 系统设置</a></li>
                 </ul>
                 
@@ -44,10 +45,8 @@
                         </div>
                         <p>基于AI技术的企业质量与标准化文档体系管理平台</p>
                         <div class="quick-actions">
-                            <button class="btn"><i class='bx bx-play'></i> 快速开始</button>
-                            <button class="btn"><i class='bx bx-history'></i> 最近项目</button>
-                            <button class="btn"><i class='bx bx-stats'></i> 系统状态</button>
-                            <button class="btn"><i class='bx bx-help-circle'></i> 帮助中心</button>
+                           
+                            <button class="btn" onclick="navigateToPage('help')"><i class='bx bx-help-circle'></i> 帮助中心</button>
                         </div>
                     </div>
 
@@ -407,12 +406,7 @@
                             <button class="btn" id="downloadMissingList"><i class='bx bx-download'></i> 下载缺失清单</button>
                         </div>
                         
-                        <div class="content-issues">
-                            <h4>内容问题</h4>
-                            <ul id="issuesList">
-                                <!-- 内容问题将显示在这里 -->
-                            </ul>
-                        </div>
+                        <!-- 删除整个内容问题部分 -->
                         
                         <div class="button-group">
                             <button class="btn" id="generateReport"><i class='bx bx-file'></i> 生成诊断报告</button>
@@ -425,6 +419,318 @@
                 <div id="settings" class="panel">
                     <h2><i class='bx bx-cog'></i> 系统设置</h2>
                     <!-- 系统设置内容 -->
+                </div>
+                
+                <!-- 帮助中心面板 -->
+                <div id="help" class="panel">
+                    <h2><i class='bx bx-help-circle'></i> 帮助中心</h2>
+                    
+                    <div class="help-container">
+                        <!-- 快速导航 -->
+                        <div class="help-navigation">
+                            <h3><i class='bx bx-compass'></i> 快速导航</h3>
+                            <div class="help-nav-grid">
+                                <div class="help-nav-item" data-section="getting-started">
+                                    <i class='bx bx-play-circle'></i>
+                                    <h4>快速开始</h4>
+                                    <p>了解系统基本功能和使用流程</p>
+                                </div>
+                                <div class="help-nav-item" data-section="document-generation">
+                                    <i class='bx bx-brain'></i>
+                                    <h4>文档体系生成</h4>
+                                    <p>学习如何智能生成文档体系框架</p>
+                                </div>
+                                <div class="help-nav-item" data-section="document-diagnosis">
+                                    <i class='bx bx-search-alt'></i>
+                                    <h4>文档诊断</h4>
+                                    <p>掌握文档体系缺失诊断功能</p>
+                                </div>
+                                <div class="help-nav-item" data-section="knowledge-graph">
+                                    <i class='bx bx-network-chart'></i>
+                                    <h4>知识图谱</h4>
+                                    <p>了解知识图谱的使用和管理</p>
+                                </div>
+                                <div class="help-nav-item" data-section="faq">
+                                    <i class='bx bx-question-mark'></i>
+                                    <h4>常见问题</h4>
+                                    <p>查看常见问题和解决方案</p>
+                                </div>
+                                <div class="help-nav-item" data-section="contact">
+                                    <i class='bx bx-support'></i>
+                                    <h4>技术支持</h4>
+                                    <p>获取技术支持和联系方式</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 帮助内容区域 -->
+                        <div class="help-content">
+                            <!-- 快速开始 -->
+                            <div id="getting-started" class="help-section active">
+                                <h3><i class='bx bx-play-circle'></i> 快速开始</h3>
+                                <div class="help-steps">
+                                    <div class="step">
+                                        <div class="step-number">1</div>
+                                        <div class="step-content">
+                                            <h4>选择功能模块</h4>
+                                            <p>根据您的需求选择相应的功能模块：</p>
+                                            <ul>
+                                                <li><strong>文档体系智能生成</strong>：基于企业业务描述生成文档框架</li>
+                                                <li><strong>文档体系缺失诊断</strong>：分析现有文档并识别缺失项</li>
+                                                <li><strong>知识图谱</strong>：管理和查看企业知识图谱</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="step">
+                                        <div class="step-number">2</div>
+                                        <div class="step-content">
+                                            <h4>准备相关资料</h4>
+                                            <p>根据选择的功能准备相应资料：</p>
+                                            <ul>
+                                                <li>企业业务描述文档</li>
+                                                <li>现有的质量管理文档</li>
+                                                <li>行业标准要求文档</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="step">
+                                        <div class="step-number">3</div>
+                                        <div class="step-content">
+                                            <h4>开始使用系统</h4>
+                                            <p>按照界面提示操作，系统将智能分析并提供专业建议。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 文档体系生成帮助 -->
+                            <div id="document-generation" class="help-section">
+                                <h3><i class='bx bx-brain'></i> 文档体系智能生成</h3>
+                                <div class="help-content-detail">
+                                    <h4>功能介绍</h4>
+                                    <p>文档体系智能生成功能可以根据您的企业业务描述，自动生成符合行业标准的文档体系框架。</p>
+                                    
+                                    <h4>使用步骤</h4>
+                                    <ol>
+                                        <li>在"企业业务描述"文本框中详细描述您的企业情况</li>
+                                        <li>选择合适的行业类型</li>
+                                        <li>选择参照的质量管理标准</li>
+                                        <li>点击"开始智能分析"按钮</li>
+                                        <li>查看分析结果并生成文档框架</li>
+                                        <li>下载或编辑生成的框架</li>
+                                    </ol>
+                                    
+                                    <h4>注意事项</h4>
+                                    <ul>
+                                        <li>业务描述越详细，生成的框架越准确</li>
+                                        <li>建议包含组织架构、主要产品、关键流程等信息</li>
+                                        <li>可以多次调整参数重新生成</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- 文档诊断帮助 -->
+                            <div id="document-diagnosis" class="help-section">
+                                <h3><i class='bx bx-search-alt'></i> 文档体系缺失诊断</h3>
+                                <div class="help-content-detail">
+                                    <h4>功能介绍</h4>
+                                    <p>文档体系缺失诊断功能可以分析您现有的文档，识别文档体系中的缺失项并提供改进建议。</p>
+                                    
+                                    <h4>支持的文件格式</h4>
+                                    <ul>
+                                        <li>.doc / .docx (Word文档)</li>
+                                        <li>.pdf (PDF文档)</li>
+                                        <li>.txt (纯文本文件)</li>
+                                    </ul>
+                                    
+                                    <h4>使用步骤</h4>
+                                    <ol>
+                                        <li>上传您的企业文档（支持批量上传）</li>
+                                        <li>选择参照标准和诊断深度</li>
+                                        <li>点击"开始诊断"按钮</li>
+                                        <li>查看诊断结果和缺失清单</li>
+                                        <li>生成并下载诊断报告</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <!-- 知识图谱帮助 -->
+                            <div id="knowledge-graph" class="help-section">
+                                <h3><i class='bx bx-network-chart'></i> 知识图谱</h3>
+                                <div class="help-content-detail">
+                                    <h4>功能介绍</h4>
+                                    <p>知识图谱模块提供企业知识的可视化展示和管理功能，包括实体、关系和三元组的管理。</p>
+                                    
+                                    <h4>主要功能</h4>
+                                    <ul>
+                                        <li><strong>图谱视图</strong>：可视化展示知识图谱结构</li>
+                                        <li><strong>三元组抽取</strong>：从文本中自动抽取知识三元组</li>
+                                        <li><strong>实体管理</strong>：添加、编辑和删除知识实体</li>
+                                        <li><strong>关系管理</strong>：管理实体间的关系</li>
+                                    </ul>
+                                    
+                                    <h4>操作指南</h4>
+                                    <ol>
+                                        <li>选择图谱类型（完整视图、标准层视图等）</li>
+                                        <li>点击"刷新图谱"查看可视化结果</li>
+                                        <li>使用搜索功能快速定位特定实体</li>
+                                        <li>通过三元组抽取功能扩展知识图谱</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <!-- 常见问题 -->
+                            <div id="faq" class="help-section">
+                                <h3><i class='bx bx-question-mark'></i> 常见问题</h3>
+                                <div class="faq-list">
+                                    <div class="faq-item">
+                                        <div class="faq-question">
+                                            <i class='bx bx-chevron-right'></i>
+                                            <span>系统支持哪些质量管理标准？</span>
+                                        </div>
+                                        <div class="faq-answer">
+                                            <p>系统目前支持以下标准：</p>
+                                            <ul>
+                                                <li>ISO 9001:2015 质量管理体系</li>
+                                                <li>ISO 14001:2015 环境管理体系</li>
+                                                <li>IATF 16949:2016 汽车行业质量管理体系</li>
+                                                <li>HACCP 食品安全管理体系</li>
+                                                <li>自定义标准</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="faq-item">
+                                        <div class="faq-question">
+                                            <i class='bx bx-chevron-right'></i>
+                                            <span>上传的文档会被保存吗？</span>
+                                        </div>
+                                        <div class="faq-answer">
+                                            <p>上传的文档仅用于分析处理，系统会在分析完成后自动清理临时文件，确保您的数据安全。</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="faq-item">
+                                        <div class="faq-question">
+                                            <i class='bx bx-chevron-right'></i>
+                                            <span>如何提高文档生成的准确性？</span>
+                                        </div>
+                                        <div class="faq-answer">
+                                            <p>建议在业务描述中包含以下信息：</p>
+                                            <ul>
+                                                <li>详细的组织架构</li>
+                                                <li>主要产品或服务描述</li>
+                                                <li>关键业务流程</li>
+                                                <li>质量控制要求</li>
+                                                <li>合规性要求</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="faq-item">
+                                        <div class="faq-question">
+                                            <i class='bx bx-chevron-right'></i>
+                                            <span>知识图谱数据如何管理？</span>
+                                        </div>
+                                        <div class="faq-answer">
+                                            <p>系统使用Neo4j图数据库存储知识图谱数据，支持数据的增删改查操作。您可以通过界面进行实体和关系的管理，也可以批量导入数据。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 技术支持 -->
+                            <div id="contact" class="help-section">
+                                <h3><i class='bx bx-support'></i> 技术支持</h3>
+                                <div class="contact-info">
+                                    <div class="contact-card">
+                                        <i class='bx bx-envelope'></i>
+                                        <h4>邮件支持</h4>
+                                        <p>support@document-ai.com</p>
+                                        <span>工作日24小时内回复</span>
+                                    </div>
+                                    
+                                    <div class="contact-card">
+                                        <i class='bx bx-phone'></i>
+                                        <h4>电话支持</h4>
+                                        <p>400-123-4567</p>
+                                        <span>工作日 9:00-18:00</span>
+                                    </div>
+                                    
+                                    <div class="contact-card">
+                                        <i class='bx bx-chat'></i>
+                                        <h4>在线客服</h4>
+                                        <p>点击右下角客服图标</p>
+                                        <span>工作日 9:00-18:00</span>
+                                    </div>
+                                    
+                                    <div class="contact-card">
+                                        <i class='bx bx-book'></i>
+                                        <h4>用户手册</h4>
+                                        <p><a href="#" class="help-link">下载详细用户手册</a></p>
+                                        <span>PDF格式，包含完整操作指南</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="version-info">
+                                    <h4>系统信息</h4>
+                                    <p>版本号：v1.0.0</p>
+                                    <p>更新时间：2024年1月</p>
+                                    <p>技术支持：AI文档智能团队</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 技术支持 -->
+                <div id="contact" class="help-section">
+                    <h3><i class='bx bx-support'></i> 技术支持</h3>
+                    <div class="contact-info">
+                        <div class="contact-card">
+                            <i class='bx bx-envelope'></i>
+                            <h4>邮件支持</h4>
+                            <p>support@document-ai.com</p>
+                            <span>工作日24小时内回复</span>
+                        </div>
+                        
+                        <div class="contact-card">
+                            <i class='bx bx-phone'></i>
+                            <h4>电话支持</h4>
+                            <p>400-123-4567</p>
+                            <span>工作日 9:00-18:00</span>
+                        </div>
+                        
+                        <div class="contact-card">
+                            <i class='bx bx-chat'></i>
+                            <h4>在线客服</h4>
+                            <p>点击右下角客服图标</p>
+                            <span>工作日 9:00-18:00</span>
+                        </div>
+                        
+                        <div class="contact-card">
+                            <i class='bx bx-book'></i>
+                            <h4>用户手册</h4>
+                            <p><a href="#" class="help-link">下载详细用户手册</a></p>
+                            <span>PDF格式，包含完整操作指南</span>
+                        </div>
+                    </div>
+                    
+                    <div class="version-info">
+                        <h4>系统信息</h4>
+                        <p>版本号：v1.0.0</p>
+                        <p>更新时间：2024年1月</p>
+                        <p>技术支持：AI文档智能团队</p>
+                    </div>
+                </div>
+                
+                <div class="version-info">
+                    <h4>系统信息</h4>
+                    <p>版本号：v1.0.0</p>
+                    <p>更新时间：2024年1月</p>
+                    <p>技术支持：AI文档智能团队</p>
                 </div>
             </div>
         </div>

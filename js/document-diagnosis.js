@@ -7,13 +7,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const referenceStandard = document.getElementById('referenceStandard');
     const diagnosisDepth = document.getElementById('diagnosisDepth');
     const startDiagnosis = document.getElementById('startDiagnosis');
+    // 获取DOM元素
     const diagnosisResults = document.querySelector('.diagnosis-results');
     const completenessProgress = document.getElementById('completenessProgress');
     const completenessValue = document.getElementById('completenessValue');
     const healthProgress = document.getElementById('healthProgress');
     const healthValue = document.getElementById('healthValue');
     const missingList = document.getElementById('missingList');
-    const issuesList = document.getElementById('issuesList');
+    // 删除这行：const issuesList = document.getElementById('issuesList');
     const generateReport = document.getElementById('generateReport');
     const downloadMissingList = document.getElementById('downloadMissingList');
     const newDiagnosis = document.getElementById('newDiagnosis');
@@ -194,15 +195,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 显示诊断结果
+    // 显示诊断结果
     function displayDiagnosisResults(data) {
         if (!diagnosisResults) return;
-
+    
         // 显示结果区域
         diagnosisResults.style.display = 'block';
-
+    
         // 更新完整度
         if (completenessProgress && completenessValue) {
-            const completeness = data.completeness || 0;
+            const completeness = data.completeness?.percentage || 0;
             completenessProgress.style.width = completeness + '%';
             completenessValue.textContent = completeness + '%';
             
@@ -218,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 更新健康度
         if (healthProgress && healthValue) {
-            const health = data.health || 0;
+            const health = data.healthScore?.score || 0;
             healthProgress.style.width = health + '%';
             healthValue.textContent = health + '%';
             
@@ -249,30 +251,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // 显示内容问题
-        if (issuesList && data.contentIssues) {
-            issuesList.innerHTML = '';
-            data.contentIssues.forEach(issue => {
-                const li = document.createElement('li');
-                li.className = 'issue-item';
-                li.innerHTML = `
-                    <div class="issue-info">
-                        <strong>${issue.document}</strong>
-                        <p>${issue.description}</p>
-                        <span class="severity severity-${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>
-                    </div>
-                `;
-                issuesList.appendChild(li);
-            });
-        }
+        // 删除整个"显示内容问题"部分的代码
     }
 
-    // 获取优先级文本
+    // 删除getSeverityText函数
     function getPriorityText(priority) {
         const priorityMap = {
+            // 支持英文优先级
             'high': '高优先级',
-            'medium': '中优先级',
-            'low': '低优先级'
+            'medium': '中优先级', 
+            'low': '低优先级',
+            // 支持中文优先级
+            '高': '高优先级',
+            '中': '中优先级',
+            '低': '低优先级'
         };
         return priorityMap[priority] || '中优先级';
     }

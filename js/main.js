@@ -143,3 +143,56 @@ function navigateToPage(pageId) {
         targetPanel.classList.add('active');
     }
 }
+
+// 帮助中心功能
+function initHelpCenter() {
+    // 导航项点击事件
+    document.querySelectorAll('.help-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const section = this.dataset.section;
+            showHelpSection(section);
+        });
+    });
+    
+    // FAQ折叠功能
+    document.querySelectorAll('.faq-question').forEach(question => {
+        question.addEventListener('click', function() {
+            const faqItem = this.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // 关闭所有其他FAQ项
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 切换当前项
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        });
+    });
+}
+
+function showHelpSection(sectionId) {
+    // 隐藏所有帮助部分
+    document.querySelectorAll('.help-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // 显示指定部分
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    // 滚动到内容区域
+    document.querySelector('.help-content').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+}
+
+// 在DOMContentLoaded事件中初始化帮助中心
+document.addEventListener('DOMContentLoaded', function() {
+    initHelpCenter();
+});
