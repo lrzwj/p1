@@ -96,7 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         products: currentAnalysisResult.products || [],
                         processes: currentAnalysisResult.processes || [],
                         industry: industryType.value,
-                        standard: referenceStandardGen.value
+                        standard: referenceStandardGen.value,
+                        // 新增：传递企业信息
+                        enterpriseInfo: currentAnalysisResult.enterpriseInfo
                     })
                 });
 

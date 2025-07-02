@@ -32,7 +32,9 @@ router.post('/analyze-business-description', async (req, res) => {
             processes: [
                 ...(layeredResult.processLayer?.coreProcesses?.map(p => p.name) || []),
                 ...(layeredResult.processLayer?.supportProcesses?.map(p => p.name) || [])
-            ]
+            ],
+            // 新增：返回企业信息供框架生成使用
+            enterpriseInfo: layeredResult.enterpriseInfo
         };
         
         res.json({
@@ -58,7 +60,9 @@ router.post('/generate-document-framework', async (req, res) => {
             products = [], 
             processes = [], 
             industry = '', 
-            standard = '' 
+            standard = '',
+            // 新增：接收企业信息
+            enterpriseInfo = null
         } = req.body;
         
         // 确保数组类型
@@ -141,22 +145,19 @@ router.post('/generate-document-framework', async (req, res) => {
         const content = response.data.choices[0].message.content;
         const framework = JSON.parse(content.replace(/```json|```/g, '').trim());
         
-        // 新增：将生成的框架保存到知识图谱
+        // 修改：将生成的框架保存到知识图谱，使用现有企业节点
         if (framework && framework.framework && framework.framework.categories && Array.isArray(framework.framework.categories)) {
             console.log('保存框架到知识图谱，分类数量:', framework.framework.categories.length);
+            
+            // 使用现有企业信息
             await analysisService.saveFrameworkToKnowledgeGraph({
                 industry,
                 departments: safeDepartments,
                 framework: framework.framework,
                 timestamp: new Date()
-            });
+            }, enterpriseInfo); // 传递企业信息
         } else {
-            console.warn('框架数据结构不完整，跳过保存到知识图谱:', {
-                hasFramework: !!framework,
-                hasFrameworkProperty: !!(framework && framework.framework),
-                hasCategories: !!(framework && framework.framework && framework.framework.categories),
-                categoriesIsArray: !!(framework && framework.framework && framework.framework.categories && Array.isArray(framework.framework.categories))
-            });
+            console.warn('框架数据结构不完整，跳过保存到知识图谱');
         }
         
         res.json({

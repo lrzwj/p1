@@ -104,7 +104,8 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
   "enterpriseLayer": {
     "departments": ["部门列表"],
     "products": ["产品服务列表"],
-    "organizationStructure": "组织架构描述"
+    "organizationStructure": "组织架构描述",
+    "enterpriseName": "企业名称（如果能识别出来）"
   },
   "processLayer": {
     "coreProcesses": [{"name": "流程名称", "description": "流程描述", "owner": "责任部门"}],
@@ -133,8 +134,20 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
             if (jsonMatch) {
                 try {
                     const layeredData = JSON.parse(jsonMatch[0]);
-                    // 保存到知识图谱
-                    await this.saveLayeredDataToKnowledgeGraph(layeredData, industry, standard);
+                    
+                    // 提取企业名称
+                    const enterpriseName = layeredData.enterpriseLayer?.enterpriseName || null;
+                    
+                    // 保存到知识图谱并获取企业信息
+                    const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
+                        layeredData, 
+                        industry, 
+                        standard, 
+                        enterpriseName  // 传递企业名称
+                    );
+                    
+                    // 将企业信息添加到返回数据中
+                    layeredData.enterpriseInfo = enterpriseInfo;
                     return layeredData;
                 } catch (parseError) {
                     console.error('JSON解析失败:', parseError);
@@ -142,23 +155,40 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
                     
                     // 尝试修复常见的JSON格式问题
                     let fixedJson = jsonMatch[0]
-                        .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
-                        .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
-                        .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*):/g, '$1"$2":')  // 给属性名加引号
-                        .replace(/:s*([a-zA-Z_][a-zA-Z0-9_]*)(\s*[,}])/g, ': "$1"$2')  // 给字符串值加引号
-                        .replace(/"(true|false|null|\d+)"(\s*[,}\]])/g, '$1$2');  // 移除布尔值和数字的引号
+                        .replace(/,\s*}/g, '}')
+                        .replace(/,\s*]/g, ']')
+                        .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*):/g, '$1"$2":')
+                        .replace(/:s*([a-zA-Z_][a-zA-Z0-9_]*)(\s*[,}])/g, ': "$1"$2')
+                        .replace(/"(true|false|null|\d+)"(\s*[,}\]])/g, '$1$2');
                     
                     try {
                         const layeredData = JSON.parse(fixedJson);
                         console.log('JSON修复成功');
-                        await this.saveLayeredDataToKnowledgeGraph(layeredData, industry, standard);
+                        
+                        const enterpriseName = layeredData.enterpriseLayer?.enterpriseName || null;
+                        const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
+                            layeredData, 
+                            industry, 
+                            standard, 
+                            enterpriseName
+                        );
+                        
+                        layeredData.enterpriseInfo = enterpriseInfo;
                         return layeredData;
                     } catch (secondParseError) {
                         console.error('修复后仍然解析失败:', secondParseError);
                         console.error('修复后的JSON:', fixedJson);
                         
                         // 返回默认结构
-                        return this.getDefaultLayeredStructure(description, industry, standard);
+                        const defaultData = this.getDefaultLayeredStructure(description, industry, standard);
+                        const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
+                            defaultData, 
+                            industry, 
+                            standard, 
+                            null
+                        );
+                        defaultData.enterpriseInfo = enterpriseInfo;
+                        return defaultData;
                     }
                 }
             }
@@ -617,27 +647,81 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
     }
 
     // 将生成的框架保存到知识图谱
-    async saveFrameworkToKnowledgeGraph(frameworkData) {
+    async saveFrameworkToKnowledgeGraph(frameworkData, enterpriseInfo = null) {
         try {
             const session = driver.session();
             
-            // 创建企业节点
-            const createEnterpriseQuery = `
-                MERGE (e:Enterprise {industry: $industry})
-                SET e.departments = $departments, e.lastUpdated = datetime()
-                RETURN e
-            `;
+            let actualEnterpriseId;
+            let actualEnterpriseName = frameworkData.enterpriseName || null;
             
-            await session.run(createEnterpriseQuery, {
-                industry: frameworkData.industry,
-                departments: frameworkData.departments
-            });
+            // 如果提供了企业信息，使用现有企业节点
+            if (enterpriseInfo && enterpriseInfo.enterpriseId) {
+                actualEnterpriseId = enterpriseInfo.enterpriseId;
+                actualEnterpriseName = enterpriseInfo.enterpriseName;
+                console.log(`使用现有企业节点进行框架保存: ${actualEnterpriseName} (ID: ${actualEnterpriseId})`);
+            } else {
+                // 没有提供企业信息，需要查找或创建企业节点
+                if (actualEnterpriseName) {
+                    // 有企业名称，先查找是否已存在
+                    const existingEnterpriseResult = await session.run(`
+                        MATCH (e:Enterprise {name: $enterpriseName})
+                        RETURN e.id as id
+                    `, {
+                        enterpriseName: actualEnterpriseName
+                    });
+                    
+                    if (existingEnterpriseResult.records.length > 0) {
+                        // 使用现有企业
+                        actualEnterpriseId = existingEnterpriseResult.records[0].get('id');
+                        console.log(`找到现有企业节点: ${actualEnterpriseName} (ID: ${actualEnterpriseId})`);
+                    } else {
+                        // 创建新企业
+                        actualEnterpriseId = `enterprise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                        await session.run(`
+                            CREATE (e:Enterprise {
+                                id: $enterpriseId,
+                                name: $enterpriseName,
+                                industry: $industry,
+                                departments: $departments,
+                                createdAt: datetime(),
+                                lastUpdated: datetime()
+                            })
+                            RETURN e
+                        `, {
+                            enterpriseId: actualEnterpriseId,
+                            enterpriseName: actualEnterpriseName,
+                            industry: frameworkData.industry,
+                            departments: frameworkData.departments
+                        });
+                        console.log(`创建新企业节点: ${actualEnterpriseName} (ID: ${actualEnterpriseId})`);
+                    }
+                } else {
+                    // 没有企业名称，创建匿名企业
+                    actualEnterpriseId = `enterprise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    await session.run(`
+                        CREATE (e:Enterprise {
+                            id: $enterpriseId,
+                            name: null,
+                            industry: $industry,
+                            departments: $departments,
+                            createdAt: datetime(),
+                            lastUpdated: datetime()
+                        })
+                        RETURN e
+                    `, {
+                        enterpriseId: actualEnterpriseId,
+                        industry: frameworkData.industry,
+                        departments: frameworkData.departments
+                    });
+                    console.log(`创建匿名企业节点 (ID: ${actualEnterpriseId})`);
+                }
+            }
             
             // 创建文档框架节点
             const frameworkId = `framework_${Date.now()}`;
             const createFrameworkQuery = `
-                // 创建或匹配企业节点
-                MERGE (e:Enterprise {industry: $industry})
+                // 匹配企业节点
+                MATCH (e:Enterprise {id: $enterpriseId})
                 
                 // 创建文档框架节点
                 CREATE (f:DocumentFramework {
@@ -654,6 +738,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             `;
             
             await session.run(createFrameworkQuery, {
+                enterpriseId: actualEnterpriseId,
                 industry: frameworkData.industry,
                 frameworkId: frameworkId
             });
@@ -700,8 +785,10 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             
             await session.close();
             console.log('框架已保存到知识图谱');
+            return actualEnterpriseId;
         } catch (error) {
             console.error('保存框架到知识图谱失败:', error);
+            throw error;
         }
     }
 
@@ -757,14 +844,14 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
     }
 
     // 保存四层数据到知识图谱
-    async saveLayeredDataToKnowledgeGraph(layeredData, industry, standard) {
+    async saveLayeredDataToKnowledgeGraph(layeredData, industry, standard, enterpriseName = null) {
         const session = driver.session();
         
         try {
             // 添加数据验证
             if (!layeredData) {
                 console.error('layeredData 为空');
-                return;
+                return null;
             }
             
             // 确保数据结构完整
@@ -790,35 +877,123 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                 });
             }
             
-            // 2. 创建企业层节点
+            // 2. 创建行业节点
             await session.run(`
-                MERGE (e:Enterprise {industry: $industry})
-                SET e.departments = $departments, 
-                    e.products = $products,
-                    e.organizationStructure = $orgStructure,
-                    e.lastUpdated = datetime()
-                RETURN e
+                MERGE (i:Industry {name: $industry})
+                SET i.type = $industry,
+                    i.lastUpdated = datetime()
+                RETURN i
             `, {
-                industry: industry,
-                departments: validatedData.enterpriseLayer.departments,
-                products: validatedData.enterpriseLayer.products,
-                orgStructure: validatedData.enterpriseLayer.organizationStructure
+                industry: industry
             });
             
-             // 新增：建立企业与标准的关联
+            // 3. 创建或查找企业层节点（基于企业名称去重）
+            let enterpriseId;
+            
+            if (enterpriseName) {
+                // 如果有企业名称，先查找是否已存在
+                const existingEnterpriseResult = await session.run(`
+                    MATCH (e:Enterprise {name: $enterpriseName})
+                    RETURN e.id as id
+                `, {
+                    enterpriseName: enterpriseName
+                });
+                
+                if (existingEnterpriseResult.records.length > 0) {
+                    // 企业已存在，使用现有企业ID并更新信息
+                    enterpriseId = existingEnterpriseResult.records[0].get('id');
+                    await session.run(`
+                        MATCH (e:Enterprise {name: $enterpriseName})
+                        SET e.industry = $industry,
+                            e.departments = $departments, 
+                            e.products = $products,
+                            e.organizationStructure = $orgStructure,
+                            e.lastUpdated = datetime()
+                        RETURN e
+                    `, {
+                        enterpriseName: enterpriseName,
+                        industry: industry,
+                        departments: validatedData.enterpriseLayer.departments,
+                        products: validatedData.enterpriseLayer.products,
+                        orgStructure: validatedData.enterpriseLayer.organizationStructure
+                    });
+                    console.log(`使用现有企业节点: ${enterpriseName} (ID: ${enterpriseId})`);
+                } else {
+                    // 企业不存在，创建新节点
+                    enterpriseId = `enterprise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    await session.run(`
+                        CREATE (e:Enterprise {
+                            id: $enterpriseId,
+                            name: $enterpriseName,
+                            industry: $industry,
+                            departments: $departments, 
+                            products: $products,
+                            organizationStructure: $orgStructure,
+                            createdAt: datetime(),
+                            lastUpdated: datetime()
+                        })
+                        RETURN e
+                    `, {
+                        enterpriseId: enterpriseId,
+                        enterpriseName: enterpriseName,
+                        industry: industry,
+                        departments: validatedData.enterpriseLayer.departments,
+                        products: validatedData.enterpriseLayer.products,
+                        orgStructure: validatedData.enterpriseLayer.organizationStructure
+                    });
+                    console.log(`创建新企业节点: ${enterpriseName} (ID: ${enterpriseId})`);
+                }
+            } else {
+                // 没有企业名称，创建新节点（名称为null）
+                enterpriseId = `enterprise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await session.run(`
+                    CREATE (e:Enterprise {
+                        id: $enterpriseId,
+                        name: null,
+                        industry: $industry,
+                        departments: $departments, 
+                        products: $products,
+                        organizationStructure: $orgStructure,
+                        createdAt: datetime(),
+                        lastUpdated: datetime()
+                    })
+                    RETURN e
+                `, {
+                    enterpriseId: enterpriseId,
+                    industry: industry,
+                    departments: validatedData.enterpriseLayer.departments,
+                    products: validatedData.enterpriseLayer.products,
+                    orgStructure: validatedData.enterpriseLayer.organizationStructure
+                });
+                console.log(`创建匿名企业节点 (ID: ${enterpriseId})`);
+            }
+            
+            // 4. 建立标准->行业->企业的关系链
             for (const std of validatedData.standardLayer.standards) {
+                // 建立标准与行业的关系
                 await session.run(`
                     MATCH (s:Standard {name: $standardName})
-                    MATCH (e:Enterprise {industry: $industry})
-                    MERGE (e)-[:FOLLOWS_STANDARD]->(s)
-                    RETURN e, s
+                    MATCH (i:Industry {name: $industry})
+                    MERGE (s)-[:APPLIES_TO]->(i)
+                    RETURN s, i
                 `, {
                     standardName: std.name,
                     industry: industry
                 });
+                
+                // 建立行业与企业的关系
+                await session.run(`
+                    MATCH (i:Industry {name: $industry})
+                    MATCH (e:Enterprise {id: $enterpriseId})
+                    MERGE (i)-[:CONTAINS]->(e)
+                    RETURN i, e
+                `, {
+                    industry: industry,
+                    enterpriseId: enterpriseId
+                });
             }
             
-            // 3. 创建流程层节点
+            // 5. 创建流程层节点
             console.log('保存流程层数据:', JSON.stringify(validatedData.processLayer, null, 2));
 
             // 保存核心流程
@@ -827,7 +1002,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                 for (const process of validatedData.processLayer.coreProcesses) {
                     console.log('创建核心流程:', process.name);
                     await session.run(`
-                        MERGE (e:Enterprise {industry: $industry})
+                        MATCH (e:Enterprise {id: $enterpriseId})
                         CREATE (p:Process {
                             name: $name,
                             description: $description,
@@ -837,7 +1012,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                         CREATE (e)-[:HAS_PROCESS]->(p)
                         RETURN p
                     `, {
-                        industry: industry,
+                        enterpriseId: enterpriseId,
                         name: process.name,
                         description: process.description || '',
                         owner: process.owner || ''
@@ -853,7 +1028,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                 for (const process of validatedData.processLayer.supportProcesses) {
                     console.log('创建支持流程:', process.name);
                     await session.run(`
-                        MERGE (e:Enterprise {industry: $industry})
+                        MATCH (e:Enterprise {id: $enterpriseId})
                         CREATE (p:Process {
                             name: $name,
                             description: $description,
@@ -862,7 +1037,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                         CREATE (e)-[:HAS_PROCESS]->(p)
                         RETURN p
                     `, {
-                        industry: industry,
+                        enterpriseId: enterpriseId,
                         name: process.name,
                         description: process.description || ''
                     });
@@ -871,7 +1046,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                 console.log('警告：没有支持流程数据');
             }
             
-            // 4. 不再在智能分析阶段创建文档层节点
+            // 6. 不再在智能分析阶段创建文档层节点
             // 智能分析只创建：企业层、标准层、流程层
             if (validatedData.documentLayer && validatedData.documentLayer.categories && validatedData.documentLayer.categories.length > 0) {
                 // 保存文档需求信息到分析结果中，但不创建图谱节点
@@ -881,8 +1056,15 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             }
             
             console.log('四层知识图谱构建完成');
+            
+            // 返回企业ID和企业名称，供后续框架生成使用
+            return {
+                enterpriseId: enterpriseId,
+                enterpriseName: enterpriseName
+            };
+            
         } catch (error) {
-            console.error('保存四层数据失败:', error);
+            console.error('保存五层数据失败:', error);
             throw error;
         } finally {
             await session.close();
