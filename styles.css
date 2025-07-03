@@ -2428,3 +2428,33 @@ footer {
     margin-bottom: 5px;
     line-height: 1.5;
 }
+
+.missing-info {
+    padding: 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border-left: 4px solid var(--primary-color);
+}
+
+.missing-info strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.missing-info p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.missing-info .priority {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}

@@ -7,8 +7,6 @@ const axios = require('axios');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } = require('docx');
 require('dotenv').config();
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -71,7 +69,9 @@ router.post('/diagnose-documents', upload.array('documents', 20), async (req, re
         const diagnosisResult = await performDocumentDiagnosis({
             documentAnalysis,
             standard,
-            diagnosisDepth
+            diagnosisDepth,
+            industry: req.body.industry || '通用',
+            businessDescription: req.body.businessDescription || ''
         });
         
         res.json({
@@ -171,8 +171,50 @@ async function analyzeUploadedDocuments(files) {
 }
 
 // 执行文档诊断
+// 引入AnalysisService
+const AnalysisService = require('../services/AnalysisService');
+
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+
 // 执行文档诊断
-async function performDocumentDiagnosis({ documentAnalysis, standard, diagnosisDepth }) {
+async function performDocumentDiagnosis({ documentAnalysis, standard, diagnosisDepth, industry, businessDescription }) {
+    // 创建AnalysisService实例
+    const analysisService = new AnalysisService();
+    
+    // 从知识图谱获取相关知识（作为参考）
+    let relevantKnowledge;
+    if (businessDescription && businessDescription.trim()) {
+        // 使用模糊匹配方法
+        const fuzzyResult = await analysisService.queryKnowledgeGraphFuzzy(industry, standard, businessDescription);
+        // 转换格式以兼容现有代码
+        relevantKnowledge = {
+            standards: fuzzyResult.matchedStandards || [],
+            practices: fuzzyResult.matchedEnterprises || [], // 将企业信息作为实践参考
+            documentTypes: fuzzyResult.documentFrameworks || []
+        };
+    } else {
+        // 使用原有方法，需要转换数据结构
+        const originalResult = await analysisService.queryRelevantKnowledge(industry, standard);
+        relevantKnowledge = {
+            standards: originalResult.standards || [],
+            practices: originalResult.industryEnterprises || [], // 映射企业信息为实践
+            documentTypes: originalResult.commonDocumentCategories || [] // 映射文档分类为文档类型
+        };
+    }
+    
+    const documentKnowledge = await analysisService.queryDocumentKnowledge(industry, standard, {});
+    const documentRelations = await analysisService.queryDocumentRelations(standard);
+    
+    // 修复统计信息
+    const knowledgeStats = {
+        standardsCount: (relevantKnowledge.standards || []).length,
+        practicesCount: (relevantKnowledge.practices || []).length,
+        documentTypesCount: (relevantKnowledge.documentTypes || []).length,
+        existingDocsCount: (documentKnowledge.existingDocs || []).length,
+        relationsCount: (documentRelations || []).length
+    };
+    
     const prompt = `
 你是一位专业的企业文档体系诊断专家。请基于以下信息进行文档体系缺失诊断：
 
@@ -181,6 +223,28 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
 
 参照标准：${standard}
 诊断深度：${diagnosisDepth}
+
+**知识图谱参考信息**（注意：这些信息仅供参考，不必强制遵循，因为知识图谱目前规模较小）：
+
+标准要求参考：
+${(relevantKnowledge.standards || []).length > 0 ? 
+  relevantKnowledge.standards.map(s => `- ${s.name}: ${(s.requirements || []).join(', ')}`).join('\n') : 
+  '暂无相关标准要求信息'}
+
+行业最佳实践参考：
+${(relevantKnowledge.practices || []).length > 0 ? 
+  relevantKnowledge.practices.map(p => `- ${p.enterpriseName || p.name}: ${p.description || '无描述'}`).join('\n') : 
+  '暂无相关行业实践信息'}
+
+文档类型参考：
+${(relevantKnowledge.documentTypes || []).length > 0 ? 
+  relevantKnowledge.documentTypes.map(dt => `- ${dt.name}: ${dt.purpose || dt.description || '无描述'}`).join('\n') : 
+  '暂无相关文档类型信息'}
+
+相关文档参考：
+${(documentKnowledge.existingDocs || []).length > 0 ? 
+  documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description || '无描述'}`).join('\n') : 
+  '暂无相关文档信息'}
 
 请分析该企业的文档体系现状，识别缺失的关键文档。
 
@@ -204,9 +268,11 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
 
 **分析要求：**
 1. 根据已上传文档，分析当前文档体系的覆盖情况
-2. 基于参照标准，识别真正缺失的关键文档
+2. 基于参照标准和知识图谱参考信息（如有），识别真正缺失的关键文档
 3. **必须为每个缺失文档严格按照上述规则设置优先级**
 4. **确保返回的缺失文档中包含高、中、低三种不同优先级**
+5. **请在每个缺失文档对象中增加一个"description"字段，简要描述该文档的内容或用途，帮助用户理解其重要性。**
+
 
 **返回格式（严格JSON）：**
 {
@@ -232,6 +298,7 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
       "priority": "高",
       "reason": "缺失原因",
       "impact": "影响描述"
+      "description": "该文档的内容或意义简要说明"
     },
     {
       "category": "文档分类",
@@ -239,6 +306,7 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
       "priority": "中",
       "reason": "缺失原因",
       "impact": "影响描述"
+      "description": "该文档的内容或意义简要说明"
     },
     {
       "category": "文档分类",
@@ -246,8 +314,14 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
       "priority": "低",
       "reason": "缺失原因",
       "impact": "影响描述"
+      "description": "该文档的内容或意义简要说明"
     }
-  ]
+  ],
+  "knowledgeGraphUsage": {
+    "usedForAnalysis": true,
+    "referencedItems": 数字,
+    "confidence": "高/中/低"
+  }
 }
 `;
     
@@ -264,8 +338,18 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
         });
         
         const content = response.data.choices[0].message.content;
-        console.log('AI返回的原始内容:', content); // 添加这行用于调试
+        console.log('AI返回的原始内容:', content);
         const result = JSON.parse(content.replace(/```json|```/g, '').trim());
+        
+        // 修复知识图谱使用统计
+        if (!result.knowledgeGraphUsage) {
+            const totalReferencedItems = knowledgeStats.standardsCount + knowledgeStats.practicesCount + knowledgeStats.documentTypesCount + knowledgeStats.existingDocsCount;
+            result.knowledgeGraphUsage = {
+                usedForAnalysis: totalReferencedItems > 0,
+                referencedItems: totalReferencedItems,
+                confidence: totalReferencedItems > 10 ? '高' : (totalReferencedItems > 5 ? '中' : '低')
+            };
+        }
         
         return result;
     } catch (error) {
@@ -293,17 +377,22 @@ ${documentAnalysis.documents.map(doc => `- ${doc.name} (${doc.type})`).join('\n'
                     name: "组织架构图",
                     priority: "中",
                     reason: "明确组织结构和职责分工",
-                    impact: "影响管理效率"
+                    impact: "影响管理效率",
+                    description: "明确企业组织结构和各部门职责分工的基础文档"
                 }
             ],
-            contentIssues: [],
             recommendations: [
                 {
                     type: "immediate",
                     title: "建议完善基础文档",
                     actions: ["补充缺失的管理制度文档"]
                 }
-            ]
+            ],
+            knowledgeGraphUsage: {
+                usedForAnalysis: false,
+                referencedItems: 0,
+                confidence: "低"
+            }
         };
     }
 }

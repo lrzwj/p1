@@ -24,7 +24,7 @@ router.post('/analyze-business-description', async (req, res) => {
         
         // 转换数据结构以适配前端显示
         const transformedData = {
-            // 保留原始四层结构
+            // 保留原始五层结构
             layeredData: layeredResult,
             // 提取前端显示需要的扁平数据
             departments: layeredResult.enterpriseLayer?.departments || [],
@@ -40,7 +40,7 @@ router.post('/analyze-business-description', async (req, res) => {
         res.json({
             success: true,
             data: transformedData,
-            message: '业务分析完成，四层知识图谱已构建'
+            message: '业务分析完成，五层知识图谱已构建'
         });
     } catch (error) {
         console.error('业务分析失败:', error);
@@ -61,7 +61,7 @@ router.post('/generate-document-framework', async (req, res) => {
             processes = [], 
             industry = '', 
             standard = '',
-            // 新增：接收企业信息
+            businessDescription = '', // 新增：业务描述参数
             enterpriseInfo = null
         } = req.body;
         
@@ -74,7 +74,22 @@ router.post('/generate-document-framework', async (req, res) => {
         const AnalysisService = require('../services/AnalysisService');
         const analysisService = new AnalysisService();
         
-        const knowledgeData = await analysisService.queryRelevantKnowledge(industry, standard);
+        // 使用新的模糊匹配方法
+        let knowledgeData;
+        if (businessDescription && businessDescription.trim()) {
+            // 如果有业务描述，使用模糊匹配
+            knowledgeData = await analysisService.queryKnowledgeGraphFuzzy(industry, standard, businessDescription);
+            // 转换数据格式以兼容现有代码
+            knowledgeData = {
+                standards: knowledgeData.matchedStandards || [],
+                industryEnterprises: knowledgeData.matchedEnterprises || [],
+                commonDocumentCategories: knowledgeData.documentFrameworks || []
+            };
+        } else {
+            // 否则使用原有方法
+            knowledgeData = await analysisService.queryRelevantKnowledge(industry, standard);
+        }
+        
         const similarFrameworks = await analysisService.querySimilarFrameworks(industry, {
             departments: safeDepartments,
             products: safeProducts,
@@ -94,14 +109,14 @@ router.post('/generate-document-framework', async (req, res) => {
 
 知识图谱提供的参考信息：
 - 标准要求：${JSON.stringify(knowledgeData.standards)}
-- 行业最佳实践：${JSON.stringify(knowledgeData.practices)}
-- 推荐文档类型：${JSON.stringify(knowledgeData.documentTypes)}
+- 行业最佳实践：${JSON.stringify(knowledgeData.industryEnterprises)}
+- 推荐文档类型：${JSON.stringify(knowledgeData.commonDocumentCategories)}
 - 相似企业框架：${JSON.stringify(similarFrameworks)}
 
 **分析要求：**
 1. 深入分析企业的部门结构、产品特点和核心流程
-2. 结合行业特色和标准要求，识别关键管理领域
-3. 为每个管理领域设计3-5个核心文档
+2. 结合行业特色和标准要求，识别关键领域
+3. 为每个领域设计3-5个核心文档
 4. 文档名称必须体现企业的具体业务特点
 5. 确保文档体系覆盖企业运营的关键环节
 
@@ -110,7 +125,7 @@ router.post('/generate-document-framework', async (req, res) => {
   "framework": {
     "categories": [
       {
-        "name": "[根据企业部门和业务特点命名的管理体系]",
+        "name": "[根据企业部门和业务特点命名的文档体系]",
         "description": "[针对该企业具体情况的体系说明]",
         "documents": [
           {
@@ -124,7 +139,8 @@ router.post('/generate-document-framework', async (req, res) => {
 }
 
 **重要提醒：**
-- 必须根据企业的实际部门、产品、流程来定制内容
+- 必须要符合标准要求
+- 根据企业的实际部门、产品、流程来定制内容
 - 避免使用通用化的文档名称
 - 每个文档都要有明确的业务针对性
 - 严格按照JSON格式返回，不要添加其他内容
@@ -163,11 +179,14 @@ router.post('/generate-document-framework', async (req, res) => {
         res.json({
             success: true,
             data: framework,
-            knowledgeUsed: {
-                standardsCount: knowledgeData.standards.length,
-                practicesCount: knowledgeData.practices.length,
-                similarFrameworksCount: similarFrameworks.length
-            }
+            // 在文档生成中，正确处理了数据结构转换
+knowledgeUsed: {
+    standardsCount: knowledgeData.standards.length,
+    industryEnterprisesCount: knowledgeData.industryEnterprises.length,
+    commonDocumentCategoriesCount: knowledgeData.commonDocumentCategories.length,
+    similarFrameworksCount: similarFrameworks.length,
+    usedFuzzyMatching: !!businessDescription
+}
         });
     } catch (error) {
         console.error('框架生成失败:', error);
