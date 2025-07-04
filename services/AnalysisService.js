@@ -3,7 +3,7 @@ const axios = require('axios');
 
 class AnalysisService {
     constructor() {
-        this.DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+        this.DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
         this.DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
     }
 
@@ -212,6 +212,8 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
             // 3. 构建增强的提示词
             const prompt = `基于以下分析结果和知识图谱信息，生成详细的文档体系框架：
 
+**重要要求：质量手册是质量管理体系的核心文档，必须作为最高优先级文档包含在框架中，不可缺失！**
+
 分析结果：${JSON.stringify(analysisResult, null, 2)}
 行业类型：${industry}
 参照标准：${standard}
@@ -251,7 +253,11 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
   ]
 }
 
-请确保框架完整、实用，需符合${standard}标准要求，并考虑使用知识图谱中已有的成熟文档模板。`;
+**框架生成要求：**
+1. 质量手册必须作为第一个分类，优先级设为"critical"（最高级）
+2. 质量手册是质量管理体系的纲领性文件，描述整个体系的架构和要求
+3. 其他文档的优先级可以是"high"、"medium"、"low"
+4. 请确保框架完整、实用，需符合${standard}标准要求，并考虑使用知识图谱中已有的成熟文档模板。`;
 
             const response = await axios.post(this.DEEPSEEK_API_URL, {
                 model: "deepseek-chat",
@@ -343,13 +349,15 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             categories: [
                 {
                     name: '质量手册',
-                    description: '企业质量管理体系的纲领性文件',
+                    description: '企业质量管理体系的纲领性文件，是体系的核心和基础',
                     documents: [
                         {
                             name: '质量手册',
-                            description: '描述质量管理体系的总体要求',
+                            description: '描述质量管理体系的总体要求，是最重要的体系文件',
                             type: 'manual',
-                            priority: 'high'
+                            priority: 'critical',
+                            source: '标准要求',
+                            dependencies: []
                         }
                     ]
                 },
@@ -361,13 +369,15 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                             name: '文件控制程序',
                             description: '控制文件的编制、审批、发布和更改',
                             type: 'procedure',
-                            priority: 'high'
+                            priority: 'high',
+                            dependencies: ['质量手册']
                         },
                         {
                             name: '记录控制程序',
                             description: '控制质量记录的标识、储存、保护等',
                             type: 'procedure',
-                            priority: 'high'
+                            priority: 'high',
+                            dependencies: ['质量手册']
                         }
                     ]
                 }
@@ -381,7 +391,8 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                     name: `${dept}作业指导书`,
                     description: `${dept}的具体操作指导`,
                     type: 'instruction',
-                    priority: 'medium'
+                    priority: 'medium',
+                    dependencies: ['质量手册']
                 });
             });
         }
@@ -1149,32 +1160,47 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                 LIMIT 5
             `;
             
-            // 阶段2：改进的企业和业务匹配 - 利用organizationStructure和products
+            // 阶段2：改进的企业和业务匹配 - 正确处理所有属性类型
             const enterpriseQuery = `
                 MATCH (i:Industry {name: $industry})-[:CONTAINS]->(e:Enterprise)
-                WHERE e.organizationStructure IS NOT NULL AND e.products IS NOT NULL
+                WHERE e.organizationStructure IS NOT NULL OR e.products IS NOT NULL OR e.departments IS NOT NULL
                 WITH e,
-                     // 在organizationStructure中查找匹配
-                     apoc.text.sorensenDiceSimilarity(toLower(e.organizationStructure), toLower($businessDesc)) as orgStructureScore,
-                     // 在products中查找匹配
-                     apoc.text.sorensenDiceSimilarity(toLower(e.products), toLower($businessDesc)) as productsScore,
-                     // 在departments中查找匹配（保留原有逻辑）
-                     [dept IN e.departments WHERE toLower(dept) CONTAINS toLower($businessKeyword)] as matchingDepts,
-                     // 在products数组中查找匹配（保留原有逻辑）
-                     [prod IN e.products WHERE toLower(prod) CONTAINS toLower($businessKeyword)] as matchingProducts
+                     // 在organizationStructure中查找匹配（字符串类型）
+                     CASE WHEN e.organizationStructure IS NOT NULL 
+                          THEN apoc.text.sorensenDiceSimilarity(toLower(e.organizationStructure), toLower($businessDesc))
+                          ELSE 0.0 END as orgStructureScore,
+                     
+                     // 在products中查找匹配（字符串类型）
+                     CASE WHEN e.products IS NOT NULL 
+                          THEN apoc.text.sorensenDiceSimilarity(toLower(e.products), toLower($businessDesc))
+                          ELSE 0.0 END as productsScore,
+                     
+                     // 在departments数组中查找匹配
+                     CASE WHEN e.departments IS NOT NULL AND size(e.departments) > 0
+                          THEN [dept IN e.departments WHERE toLower(dept) CONTAINS toLower($businessKeyword) OR 
+                                                            apoc.text.sorensenDiceSimilarity(toLower(dept), toLower($businessDesc)) > 0.4]
+                          ELSE [] END as matchingDepts,
+                     
+                     // 使用APOC进行departments的模糊匹配评分
+                     CASE WHEN e.departments IS NOT NULL AND size(e.departments) > 0
+                          THEN apoc.coll.max([dept IN e.departments | apoc.text.sorensenDiceSimilarity(toLower(dept), toLower($businessDesc))])
+                          ELSE 0.0 END as deptScore
+                
                 // 计算综合匹配分数
-                WITH e, orgStructureScore, productsScore, matchingDepts, matchingProducts,
-                     (orgStructureScore * 0.4 + productsScore * 0.4 + 
-                      (size(matchingDepts) + size(matchingProducts)) * 0.2) as totalScore
-                WHERE totalScore > 0.3 OR size(matchingDepts) > 0 OR size(matchingProducts) > 0
+                WITH e, orgStructureScore, productsScore, matchingDepts, deptScore,
+                     (orgStructureScore * 0.3 + productsScore * 0.3 + deptScore * 0.3 + 
+                      CASE WHEN size(matchingDepts) > 0 THEN 0.1 ELSE 0.0 END) as totalScore
+                
+                WHERE totalScore > 0.2 OR size(matchingDepts) > 0
+                
                 RETURN e.name as enterpriseName,
                        e.organizationStructure as organizationStructure,
                        e.products as products,
                        e.departments as departments,
                        matchingDepts,
-                       matchingProducts,
                        orgStructureScore,
                        productsScore,
+                       deptScore,
                        totalScore as matchScore
                 ORDER BY matchScore DESC
                 LIMIT 10
@@ -1200,18 +1226,19 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             const businessKeywords = this.extractBusinessKeywords(businessDesc);
             
             const enterpriseResults = [];
-            // 使用改进的匹配逻辑
-            for (const keyword of businessKeywords) {
-                const result = await session.run(enterpriseQuery, {
-                    industry, 
-                    businessKeyword: keyword,
-                    businessDesc: businessDesc
-                });
-                enterpriseResults.push(...result.records);
-            }
             
-            // 如果没有关键词匹配，直接使用业务描述进行匹配
-            if (businessKeywords.length === 0) {
+            // 使用改进的匹配逻辑
+            if (businessKeywords.length > 0) {
+                for (const keyword of businessKeywords) {
+                    const result = await session.run(enterpriseQuery, {
+                        industry, 
+                        businessKeyword: keyword,
+                        businessDesc: businessDesc
+                    });
+                    enterpriseResults.push(...result.records);
+                }
+            } else {
+                // 如果没有关键词，直接使用业务描述进行匹配
                 const result = await session.run(enterpriseQuery, {
                     industry,
                     businessKeyword: '',
@@ -1256,9 +1283,9 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
                             products: r.get('products'),
                             departments: r.get('departments'),
                             matchingDepts: r.get('matchingDepts'),
-                            matchingProducts: r.get('matchingProducts'),
                             orgStructureScore: r.get('orgStructureScore'),
                             productsScore: r.get('productsScore'),
+                            deptScore: r.get('deptScore'),
                             score: r.get('matchScore')
                         };
                     }),
@@ -1277,29 +1304,38 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
 
     // 改进的业务关键词提取
     extractBusinessKeywords(businessDesc) {
+        if (!businessDesc || typeof businessDesc !== 'string') {
+            return [];
+        }
+        
         const keywords = [];
         
-        // 部门相关关键词
-        const deptPatterns = /(\w*部门?|\w*部|\w*科|\w*组|\w*中心|\w*处|\w*室)/g;
+        // 部门相关关键词 - 扩展模式
+        const deptPatterns = /(\w*部门?|\w*部|\w*科|\w*组|\w*中心|\w*处|\w*室|\w*院|\w*司)/g;
         const deptMatches = businessDesc.match(deptPatterns);
         if (deptMatches) keywords.push(...deptMatches);
         
         // 产品/服务关键词 - 扩展匹配模式
-        const productPatterns = /(\w*产品|\w*服务|\w*系统|\w*设备|\w*软件|\w*解决方案|\w*平台|\w*工具)/g;
+        const productPatterns = /(\w*产品|\w*服务|\w*系统|\w*设备|\w*软件|\w*解决方案|\w*平台|\w*工具|\w*技术)/g;
         const productMatches = businessDesc.match(productPatterns);
         if (productMatches) keywords.push(...productMatches);
         
         // 行业特定词汇 - 扩展词汇库
-        const industryPatterns = /(制造|生产|研发|销售|管理|质量|安全|环保|技术|工程|咨询|培训|维护|运营)/g;
+        const industryPatterns = /(制造|生产|研发|销售|管理|质量|安全|环保|技术|工程|咨询|培训|维护|运营|设计|建设)/g;
         const industryMatches = businessDesc.match(industryPatterns);
         if (industryMatches) keywords.push(...industryMatches);
         
         // 组织结构相关词汇
-        const orgPatterns = /(总部|分公司|子公司|事业部|业务单元|项目组|团队)/g;
+        const orgPatterns = /(总部|分公司|子公司|事业部|业务单元|项目组|团队|分支|机构)/g;
         const orgMatches = businessDesc.match(orgPatterns);
         if (orgMatches) keywords.push(...orgMatches);
         
-        return [...new Set(keywords)].filter(k => k.length > 1);
+        // 业务流程相关词汇
+        const processPatterns = /(流程|程序|规范|标准|制度|办法|指南|手册)/g;
+        const processMatches = businessDesc.match(processPatterns);
+        if (processMatches) keywords.push(...processMatches);
+        
+        return [...new Set(keywords)].filter(k => k && k.length > 1);
     }
 
     // 保存标准层

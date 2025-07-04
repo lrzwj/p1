@@ -377,14 +377,26 @@ header h1 {
     box-shadow: var(--shadow-md);
 }
 
+/* 按钮样式 */
 .btn-small {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 3px;
-    cursor: pointer;
+    padding: 4px 8px;
     font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #4361ee;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #3730a3;
 }
 
 /* 现代化表单设计 */
@@ -1790,6 +1802,231 @@ footer {
 
 .framework-tree .document > span {
     color: #4a5568;
+}
+
+/* 现有文档分析样式 */
+.existing-documents-analysis {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.existing-docs-container {
+    display: grid;
+    gap: 15px;
+}
+
+/* 现有文档卡片样式增强 */
+.existing-doc-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.existing-doc-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+
+.doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.doc-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.smart-edit-btn {
+    padding: 6px 12px;
+    background: #4361ee;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.smart-edit-btn:hover {
+    background: #3730a3;
+    transform: translateY(-1px);
+}
+
+.quality-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-width: 60px;
+}
+
+.quality-score.quality-high {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.quality-score.quality-medium {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.quality-score.quality-low {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.score-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.score-label {
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.doc-analysis > div {
+    margin: 15px 0;
+}
+
+.doc-analysis h6 {
+    margin: 10px 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.strengths h6 {
+    color: #28a745;
+}
+
+.weaknesses h6 {
+    color: #dc3545;
+}
+
+.missing-content h6 {
+    color: #ffc107;
+}
+
+.improvement-suggestions h6 {
+    color: #007bff;
+}
+
+.missing-elements {
+    display: grid;
+    gap: 10px;
+}
+
+.missing-element {
+    padding: 10px;
+    border-left: 4px solid #ffc107;
+    background: #fff8e1;
+    border-radius: 4px;
+}
+
+.missing-element.priority-high {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.missing-element.priority-low {
+    border-left-color: #28a745;
+    background: #d4edda;
+}
+
+.missing-element strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.missing-element .impact {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+/* 改进建议样式 */
+.improvement-recommendations {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.recommendations-section {
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.recommendations-section.immediate {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+}
+
+.recommendations-section.short_term {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.recommendations-section.long_term {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.recommendation-item {
+    margin: 10px 0;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+}
+
+.recommendation-item h7 {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* 增强缺失文档样式 */
+.missing-item {
+    margin: 10px 0;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+}
+
+.missing-description, .missing-reason, .missing-impact {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.missing-reason, .missing-impact {
+    color: #666;
+}
+
+.no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
 }
 
 @media (max-width: 768px) {

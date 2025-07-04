@@ -5,7 +5,7 @@ require('dotenv').config();
 
 // DeepSeek API配置
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
 // 从文本中抽取实体和关系
 async function extractEntitiesAndRelations(text) {
@@ -80,7 +80,7 @@ ${text}
 }`
                     }
                 ],
-                temperature: 0.3,
+                temperature: 0.1,
                 max_tokens: 2000
             }, axiosConfig);
             

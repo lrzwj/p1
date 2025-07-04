@@ -195,10 +195,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 显示诊断结果
-    // 显示诊断结果
+    // 在displayDiagnosisResults函数开头添加
     function displayDiagnosisResults(data) {
         if (!diagnosisResults) return;
-    
+        
+        // 将诊断结果设置为全局变量，供openDocumentEditor使用
+        window.currentDiagnosisResult = data;
+        
         // 显示结果区域
         diagnosisResults.style.display = 'block';
     
@@ -217,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 completenessProgress.className = 'progress progress-danger';
             }
         }
-
+    
         // 更新健康度
         if (healthProgress && healthValue) {
             const health = data.healthScore?.score || 0;
@@ -233,7 +236,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 healthProgress.className = 'progress progress-danger';
             }
         }
-
+    
+        // 新增：显示现有文档分析
+        displayExistingDocumentsAnalysis(data.existingDocumentAnalysis || []);
+    
         // 显示缺失文档
         if (missingList && data.missingDocuments) {
             missingList.innerHTML = '';
@@ -243,7 +249,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 li.innerHTML = `
                     <div class="missing-info">
                         <strong>${doc.name}</strong>
-                        <p>${doc.description || '暂无描述'}</p>
+                        <p class="missing-description">${doc.description || '暂无描述'}</p>
+                        <p class="missing-reason"><strong>缺失原因：</strong>${doc.reason || '未说明'}</p>
+                        <p class="missing-impact"><strong>影响：</strong>${doc.impact || '未评估'}</p>
                         <span class="priority priority-${doc.priority || 'medium'}">${getPriorityText(doc.priority)}</span>
                     </div>
                 `;
@@ -251,7 +259,154 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // 删除整个"显示内容问题"部分的代码
+        // 新增：显示改进建议
+        displayRecommendations(data.recommendations || []);
+    }
+
+    // 新增：显示现有文档分析的函数
+    function displayExistingDocumentsAnalysis(existingDocs) {
+        const existingDocsList = document.getElementById('existingDocsList');
+        if (!existingDocsList) return;
+    
+        existingDocsList.innerHTML = '';
+        
+        if (existingDocs.length === 0) {
+            existingDocsList.innerHTML = '<p class="no-data">暂无现有文档分析数据</p>';
+            return;
+        }
+    
+        existingDocs.forEach((doc, index) => {
+            const docCard = document.createElement('div');
+            docCard.className = 'existing-doc-card';
+            
+            const qualityScore = doc.currentQuality?.score || 0;
+            const qualityClass = qualityScore >= 80 ? 'high' : qualityScore >= 60 ? 'medium' : 'low';
+            
+            docCard.innerHTML = `
+                <div class="doc-header">
+                    <h5><i class='bx bx-file'></i> ${doc.documentName}</h5>
+                    <div class="doc-actions">
+                        <button class="btn-small btn-primary smart-edit-btn" 
+                                data-doc-index="${index}" 
+                                data-doc-name="${doc.documentName}">
+                            <i class='bx bx-edit-alt'></i> 智能修改
+                        </button>
+                        <div class="quality-score quality-${qualityClass}">
+                            <span class="score-value">${qualityScore}</span>
+                            <span class="score-label">质量评分</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="doc-analysis">
+                    ${doc.currentQuality?.strengths?.length > 0 ? `
+                        <div class="strengths">
+                            <h6><i class='bx bx-check-circle'></i> 优点</h6>
+                            <ul>
+                                ${doc.currentQuality.strengths.map(strength => `<li>${strength}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${doc.currentQuality?.weaknesses?.length > 0 ? `
+                        <div class="weaknesses">
+                            <h6><i class='bx bx-x-circle'></i> 不足</h6>
+                            <ul>
+                                ${doc.currentQuality.weaknesses.map(weakness => `<li>${weakness}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${doc.missingContent?.length > 0 ? `
+                        <div class="missing-content">
+                            <h6><i class='bx bx-error'></i> 缺失内容</h6>
+                            <div class="missing-elements">
+                                ${doc.missingContent.map(missing => `
+                                    <div class="missing-element priority-${missing.priority || 'medium'}">
+                                        <strong>${missing.element}</strong>
+                                        <p>${missing.description}</p>
+                                        <span class="impact">影响：${missing.impact}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${doc.improvementSuggestions?.length > 0 ? `
+                        <div class="improvement-suggestions">
+                            <h6><i class='bx bx-bulb'></i> 改进建议</h6>
+                            <ul>
+                                ${doc.improvementSuggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            existingDocsList.appendChild(docCard);
+        });
+        
+        // 添加智能修改按钮事件监听
+        document.querySelectorAll('.smart-edit-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const docIndex = this.getAttribute('data-doc-index');
+                const docName = this.getAttribute('data-doc-name');
+                openDocumentEditor(docIndex, docName, existingDocs[docIndex]);
+            });
+        });
+    };
+
+    // 新增：显示改进建议的函数
+    function displayRecommendations(recommendations) {
+        const recommendationsList = document.getElementById('recommendationsList');
+        if (!recommendationsList) return;
+    
+        recommendationsList.innerHTML = '';
+        
+        if (recommendations.length === 0) {
+            recommendationsList.innerHTML = '<p class="no-data">暂无改进建议</p>';
+            return;
+        }
+    
+        const groupedRecommendations = {
+            immediate: [],
+            short_term: [],
+            long_term: []
+        };
+    
+        recommendations.forEach(rec => {
+            const type = rec.type || 'short_term';
+            if (groupedRecommendations[type]) {
+                groupedRecommendations[type].push(rec);
+            }
+        });
+    
+        const typeLabels = {
+            immediate: '立即执行',
+            short_term: '短期计划',
+            long_term: '长期规划'
+        };
+    
+        Object.keys(groupedRecommendations).forEach(type => {
+            if (groupedRecommendations[type].length > 0) {
+                const section = document.createElement('div');
+                section.className = `recommendations-section ${type}`;
+                section.innerHTML = `
+                    <h6><i class='bx bx-time'></i> ${typeLabels[type]}</h6>
+                    <div class="recommendations-list">
+                        ${groupedRecommendations[type].map(rec => `
+                            <div class="recommendation-item">
+                                <h7>${rec.title}</h7>
+                                <ul>
+                                    ${rec.actions.map(action => `<li>${action}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                recommendationsList.appendChild(section);
+            }
+        });
     }
 
     // 删除getSeverityText函数
@@ -401,3 +556,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// 新增：打开文档编辑器的函数
+// 修改openDocumentEditor函数，确保正确传递文档内容
+function openDocumentEditor(docIndex, docName, docData) {
+    // 获取当前诊断结果中的改进建议
+    const improvementSuggestions = docData.improvementSuggestions || [];
+    const missingContent = docData.missingContent || [];
+    const weaknesses = docData.currentQuality?.weaknesses || [];
+    
+    // 尝试从多个可能的字段获取原始内容
+    let originalContent = docData.content || 
+                         docData.originalContent || 
+                         docData.extractedContent || 
+                         docData.textContent || 
+                         docData.contentPreview || 
+                         '';
+    
+    // 如果还是没有内容，从当前诊断结果中查找对应文档的内容
+    if (!originalContent && window.currentDiagnosisResult && window.currentDiagnosisResult.uploadedDocuments) {
+        const matchedDoc = window.currentDiagnosisResult.uploadedDocuments.find(doc => 
+            doc.name === docName || doc.name.includes(docName.replace(/\.[^/.]+$/, ""))
+        );
+        if (matchedDoc) {
+            originalContent = matchedDoc.content || matchedDoc.contentPreview || '';
+        }
+    }
+    
+    // 如果仍然没有内容，提供更详细的提示
+    if (!originalContent || originalContent.trim() === '') {
+        originalContent = `文档内容暂时无法获取，请检查文档是否正确上传或联系管理员。`; // 修复了字符串闭合问题
+    }
+    
+    // 将文档数据存储到sessionStorage中，供编辑页面使用
+    const editorData = {
+        documentName: docName,
+        documentIndex: docIndex,
+        documentData: docData,
+        originalContent: originalContent,
+        analysisResult: docData,
+        // 新增：改进建议相关数据
+        improvementSuggestions: improvementSuggestions,
+        missingContent: missingContent,
+        weaknesses: weaknesses,
+        // 新增：诊断上下文
+        diagnosisContext: {
+            standard: document.getElementById('referenceStandard')?.value || '',
+            depth: document.getElementById('diagnosisDepth')?.value || '',
+            industry: '制造业' // 可以从其他地方获取
+        }
+    };
+    
+    sessionStorage.setItem('documentEditorData', JSON.stringify(editorData));
+    
+    // 打开新窗口或跳转到编辑页面
+    window.open('document-editor.html', '_blank');
+}
