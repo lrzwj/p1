@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 文档体系智能生成相关元素
     const businessDescription = document.getElementById('businessDescription');
     const industryType = document.getElementById('industryType');
+const industryCategory = document.getElementById('industryCategory');
     const referenceStandardGen = document.getElementById('referenceStandardGen');
     const startAnalysis = document.getElementById('startAnalysis');
     const generateFramework = document.getElementById('generateFramework');
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({
                         description: description,
                         industry: industryType.value,
+                        industryCategory: industryCategory.value,
                         standard: referenceStandardGen.value
                     })
                 });

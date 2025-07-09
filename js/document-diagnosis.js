@@ -25,8 +25,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 文件上传区域点击事件
     if (uploadArea) {
-        uploadArea.addEventListener('click', function() {
+        uploadArea.addEventListener('click', function(e) {
+            // 防止重复触发
+            if (fileUpload.dataset.clicking === 'true') {
+                return;
+            }
+            fileUpload.dataset.clicking = 'true';
+            
             fileUpload.click();
+            
+            // 重置点击状态
+            setTimeout(() => {
+                fileUpload.dataset.clicking = 'false';
+            }, 500);
         });
 
         // 拖拽上传功能
@@ -48,14 +59,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 文件选择事件
+    // 文件选择事件 - 增强防重复处理
     if (fileUpload) {
         fileUpload.addEventListener('change', function(e) {
+            // 防止重复处理
+            if (this.dataset.processing === 'true') {
+                return;
+            }
+            
+            // 检查是否有文件被选择
+            if (!e.target.files || e.target.files.length === 0) {
+                return;
+            }
+            
+            this.dataset.processing = 'true';
+            
             handleFileUpload(e.target.files);
+            
+            // 重置处理状态
+            setTimeout(() => {
+                this.dataset.processing = 'false';
+                this.dataset.clicking = 'false';
+            }, 1000);
         });
     }
 
-    // 处理文件上传
+    // 处理文件上传 - 添加去重逻辑
     function handleFileUpload(files) {
         const allowedTypes = ['.doc', '.docx', '.pdf', '.txt'];
         
@@ -71,8 +100,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // 检查文件是否已存在
-            if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            // 检查文件是否已存在（更严格的检查）
+            const isDuplicate = uploadedFiles.some(f => 
+                f.name === file.name && 
+                f.size === file.size && 
+                f.lastModified === file.lastModified
+            );
+            
+            if (isDuplicate) {
                 if (typeof showNotification === 'function') {
                     showNotification(`文件已存在: ${file.name}`, 'warning');
                 } else {
@@ -86,6 +121,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         updateUploadArea();
+        
+        // 清空文件输入框，防止重复选择
+        if (fileUpload) {
+            fileUpload.value = '';
+        }
     }
 
     // 添加文件到列表
@@ -241,14 +281,26 @@ document.addEventListener('DOMContentLoaded', function() {
         displayExistingDocumentsAnalysis(data.existingDocumentAnalysis || []);
     
         // 显示缺失文档
+        // 显示缺失文档
+        // 显示缺失文档
         if (missingList && data.missingDocuments) {
             missingList.innerHTML = '';
-            data.missingDocuments.forEach(doc => {
+            data.missingDocuments.forEach((doc, index) => {
                 const li = document.createElement('li');
                 li.className = 'missing-item';
                 li.innerHTML = `
                     <div class="missing-info">
-                        <strong>${doc.name}</strong>
+                        <div class="missing-header">
+                            <strong>${doc.name}</strong>
+                            <button class="btn-small btn-success smart-generate-btn" 
+                                    data-doc-index="${index}" 
+                                    data-doc-name="${doc.name}"
+                                    data-doc-description="${doc.description || ''}"
+                                    data-doc-reason="${doc.reason || ''}"
+                                    data-doc-impact="${doc.impact || ''}">
+                                <i class='bx bx-brain'></i> 智能生成
+                            </button>
+                        </div>
                         <p class="missing-description">${doc.description || '暂无描述'}</p>
                         <p class="missing-reason"><strong>缺失原因：</strong>${doc.reason || '未说明'}</p>
                         <p class="missing-impact"><strong>影响：</strong>${doc.impact || '未评估'}</p>
@@ -256,6 +308,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 missingList.appendChild(li);
+            });
+            
+            // 添加智能生成按钮事件监听
+            document.querySelectorAll('.smart-generate-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const docIndex = this.getAttribute('data-doc-index');
+                    const docName = this.getAttribute('data-doc-name');
+                    const docDescription = this.getAttribute('data-doc-description');
+                    const docReason = this.getAttribute('data-doc-reason');
+                    const docImpact = this.getAttribute('data-doc-impact');
+                    
+                    generateMissingDocument({
+                        index: docIndex,
+                        name: docName,
+                        description: docDescription,
+                        reason: docReason,
+                        impact: docImpact,
+                        priority: data.missingDocuments[docIndex].priority
+                    });
+                });
             });
         }
 
@@ -421,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '中': '中优先级',
             '低': '低优先级'
         };
-        return priorityMap[priority] || '中优先级';
+        return priorityMap[priority] || priority;
     }
 
     // 获取严重程度文本
@@ -611,4 +683,54 @@ function openDocumentEditor(docIndex, docName, docData) {
     
     // 打开新窗口或跳转到编辑页面
     window.open('document-editor.html', '_blank');
+}
+
+// 新增：智能生成缺失文档的函数
+async function generateMissingDocument(missingDocInfo) {
+    try {
+        // 显示加载状态
+        const btn = document.querySelector(`[data-doc-index="${missingDocInfo.index}"]`);
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> 准备生成...';
+        btn.disabled = true;
+        
+        // 准备生成请求数据 - 注意这里改为documentGenerationData
+        const generateData = {
+            documentName: missingDocInfo.name,
+            description: missingDocInfo.description,
+            reason: missingDocInfo.reason,
+            impact: missingDocInfo.impact,
+            priority: missingDocInfo.priority,
+            // 添加诊断上下文
+            diagnosisContext: {
+                standard: document.getElementById('referenceStandard')?.value || 'ISO 9001',
+                depth: document.getElementById('diagnosisDepth')?.value || 'standard',
+                industry: '制造业',
+                existingDocuments: currentDiagnosisResult?.existingDocumentAnalysis?.map(doc => doc.documentName) || [],
+                missingDocuments: currentDiagnosisResult?.missingDocuments || []
+            }
+        };
+        
+        // 存储到sessionStorage供document-generator.js使用
+        sessionStorage.setItem('documentGenerationData', JSON.stringify(generateData));
+        
+        // 跳转到流式生成器页面
+        window.open('document-generator.html', '_blank');
+        
+        if (typeof showNotification === 'function') {
+            showNotification(`正在为"${missingDocInfo.name}"准备智能生成...`, 'info');
+        }
+    } catch (error) {
+        console.error('准备文档生成失败:', error);
+        if (typeof showNotification === 'function') {
+            showNotification('准备文档生成失败: ' + error.message, 'error');
+        }
+    } finally {
+        // 恢复按钮状态
+        const btn = document.querySelector(`[data-doc-index="${missingDocInfo.index}"]`);
+        if (btn) {
+            btn.innerHTML = '<i class="bx bx-brain"></i> 智能生成';
+            btn.disabled = false;
+        }
+    }
 }

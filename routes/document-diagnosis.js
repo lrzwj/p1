@@ -57,7 +57,7 @@ const upload = multer({
     }
 });
 
-// 文档诊断API
+// 文档诊断API - 使用统一的上传配置
 router.post('/diagnose-documents', upload.array('documents', 20), async (req, res) => {
     try {
         const { standard, diagnosisDepth } = req.body;
@@ -418,7 +418,7 @@ async function performDocumentDiagnosis({ documentAnalysis, standard, diagnosisD
     }
     
     const prompt = `
-    你是一个专业的质量管理体系文档诊断专家。请基于以下信息进行文档体系诊断：
+    你是一位拥有15年质量管理体系咨询经验的高级专家，精通ISO 9001、ISO 14001、ISO 45001等国际标准，擅长为不同行业企业设计和优化文档内容与体系。请基于以下信息进行文档体系诊断：
     
     **重要提醒：请严格按照${standard}标准的要求进行评估！**
     
@@ -832,7 +832,7 @@ router.post('/document-ai-modify', async (req, res) => {
 function buildDocumentModificationPrompt(documentData, userRequest, conversationHistory) {
     const { documentName, originalContent, analysisResult } = documentData;
     
-    let prompt = `你是一个专业的文档修改专家。请根据用户的需求，对以下文档进行智能修改和改进。
+    let prompt = `你是一位拥有15年质量管理体系咨询经验的高级专家，精通ISO 9001、ISO 14001、ISO 45001等国际标准，擅长为不同行业企业设计和优化文档内容和体系。请根据用户的需求，对以下文档进行智能修改和改进。
 
 文档名称：${documentName}
 
@@ -973,7 +973,7 @@ router.post('/auto-improve-document', async (req, res) => {
 function buildAutoImprovementPrompt(documentData) {
     const { documentName, originalContent, improvementSuggestions, missingContent, weaknesses } = documentData;
     
-    return `你是一个专业的文档改进专家。请根据诊断结果，对以下文档进行全面改进：
+    return `你是一位拥有15年质量管理体系咨询经验的高级专家，精通ISO 9001、ISO 14001、ISO 45001等国际标准，擅长为不同行业企业设计和优化文档内容及体系。请根据诊断结果，对以下文档进行全面改进：
 
 文档名称：${documentName}
 
@@ -997,4 +997,278 @@ ${improvementSuggestions ? improvementSuggestions.map(s => `- ${s}`).join('\n') 
 5. 确保文档的专业性和完整性
 
 请直接输出改进后的完整文档内容：`;
+}
+
+// 新增：智能生成缺失文档API
+router.post('/generate-missing-document', async (req, res) => {
+    try {
+        const { documentName, description, reason, impact, priority, diagnosisContext } = req.body;
+        
+        // 构建生成提示词
+        const prompt = buildMissingDocumentGenerationPrompt({
+            documentName,
+            description,
+            reason,
+            impact,
+            priority,
+            diagnosisContext
+        });
+        
+        // 正确实例化AnalysisService并调用AI生成文档内容
+        const analysisService = new AnalysisService();
+        const generatedContent = await analysisService.callDeepSeekAPI(prompt);
+        
+        // 解析生成结果
+        let result;
+        try {
+            // 尝试解析JSON
+            const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                result = JSON.parse(jsonMatch[0]);
+            } else {
+                // 如果没有找到JSON，创建默认结构
+                result = {
+                    content: generatedContent,
+                    structure: {
+                        sections: ["概述", "目的", "适用范围", "职责", "程序", "记录"],
+                        keyPoints: ["关键要求", "操作要点"]
+                    },
+                    suggestions: ["建议定期审查", "建议培训相关人员"]
+                };
+            }
+        } catch (parseError) {
+            console.warn('JSON解析失败，使用默认结构:', parseError);
+            result = {
+                content: generatedContent,
+                structure: {
+                    sections: ["概述", "目的", "适用范围", "职责", "程序", "记录"],
+                    keyPoints: ["关键要求", "操作要点"]
+                },
+                suggestions: ["建议定期审查", "建议培训相关人员"]
+            };
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                content: result.content,
+                structure: result.structure,
+                suggestions: result.suggestions
+            }
+        });
+    } catch (error) {
+        console.error('缺失文档生成失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '文档生成失败: ' + error.message
+        });
+    }
+});
+
+// 新增：流式生成缺失文档API
+router.post('/generate-missing-document-stream', async (req, res) => {
+    try {
+        // 提取所有参数，包括生成设置
+        const { 
+            documentName, 
+            description, 
+            reason, 
+            impact, 
+            priority, 
+            diagnosisContext,
+            generationMode,
+            contentStyle,
+            includeExamples
+        } = req.body;
+        
+        // 构建增强的生成提示词，包含生成设置
+        const prompt = buildEnhancedMissingDocumentPrompt({
+            documentName,
+            description,
+            reason,
+            impact,
+            priority,
+            diagnosisContext,
+            generationMode,
+            contentStyle,
+            includeExamples
+        });
+        
+        // 设置SSE响应头
+        res.writeHead(200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        });
+        
+        // 调用DeepSeek API进行流式生成
+        const response = await axios.post(DEEPSEEK_API_URL, {
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            stream: true
+        }, {
+            headers: {
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            responseType: 'stream'
+        });
+        
+        response.data.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data !== '[DONE]') {
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.choices && parsed.choices[0].delta.content) {
+                                res.write(`data: ${JSON.stringify({ content: parsed.choices[0].delta.content })}\n\n`);
+                            }
+                        } catch (e) {
+                            // 忽略解析错误
+                        }
+                    }
+                }
+            }
+        });
+        
+        response.data.on('end', () => {
+            res.write('data: [DONE]\n\n');
+            res.end();
+        });
+        
+        response.data.on('error', (error) => {
+            console.error('流式生成错误:', error);
+            res.write(`data: ${JSON.stringify({ error: '生成过程中出现错误' })}\n\n`);
+            res.end();
+        });
+        
+    } catch (error) {
+        console.error('流式文档生成失败:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            success: false,
+            message: '文档生成失败: ' + error.message
+        }));
+    }
+});
+
+// 构建增强的缺失文档生成提示词
+function buildEnhancedMissingDocumentPrompt(data) {
+    const { 
+        documentName, 
+        description, 
+        reason, 
+        impact, 
+        priority, 
+        diagnosisContext,
+        generationMode = 'standard',
+        contentStyle = 'formal',
+        includeExamples = true
+    } = data;
+    
+    // 根据生成模式调整详细程度
+    let detailLevel = '';
+    switch(generationMode) {
+        case 'detailed':
+            detailLevel = '请生成详细完整的文档，包含所有必要的细节和说明。';
+            break;
+        case 'concise':
+            detailLevel = '请生成简洁明了的文档，突出核心要点。';
+            break;
+        default:
+            detailLevel = '请生成标准格式的文档，内容适中。';
+    }
+    
+    // 根据内容风格调整语言风格
+    let styleGuide = '';
+    switch(contentStyle) {
+        case 'practical':
+            styleGuide = '语言要实用易懂，注重可操作性。';
+            break;
+        case 'comprehensive':
+            styleGuide = '内容要全面深入，覆盖各个方面。';
+            break;
+        default:
+            styleGuide = '使用正式的商务语言，严谨准确。';
+    }
+    
+    // 是否包含示例
+    const exampleRequirement = includeExamples ? 
+        '请在适当位置包含具体的示例和案例说明。' : 
+        '重点关注规范和要求，无需包含具体示例。';
+    
+    return `你是一个专业的质量管理文档生成专家。请根据以下信息生成一个完整的${documentName}文档。
+
+**文档基本信息：**
+- 文档名称：${documentName}
+- 文档描述：${description}
+- 缺失原因：${reason}
+- 影响评估：${impact}
+- 优先级：${priority}
+
+**企业上下文：**
+- 参照标准：${diagnosisContext.standard}
+- 行业类型：${diagnosisContext.industry}
+- 现有文档：${diagnosisContext.existingDocuments.join(', ')}
+
+**生成要求：**
+1. 文档内容要符合${diagnosisContext.standard}标准要求
+2. 结构清晰，层次分明
+3. 内容实用，可操作性强
+4. 与现有文档体系保持一致性
+5. 包含必要的表格、流程图说明
+6. 请以markdown格式输出，便于阅读和编辑
+7. ${detailLevel}
+8. ${styleGuide}
+9. ${exampleRequirement}
+
+请直接生成完整的文档内容，包括：
+- 文档标题和版本信息
+- 目的和适用范围
+- 职责分工
+- 具体程序和操作步骤
+- 相关表格和记录要求
+- 附录和参考文件
+
+开始生成文档内容：`;
+}
+
+// 构建缺失文档生成提示词
+function buildMissingDocumentGenerationPrompt(data) {
+    const { documentName, description, reason, impact, priority, diagnosisContext } = data;
+    
+    return `你是一个专业的质量管理文档生成专家。请根据以下信息生成一个完整的${documentName}文档。
+
+**文档基本信息：**
+- 文档名称：${documentName}
+- 文档描述：${description}
+- 缺失原因：${reason}
+- 影响评估：${impact}
+- 优先级：${priority}
+
+**企业上下文：**
+- 参照标准：${diagnosisContext.standard}
+- 行业类型：${diagnosisContext.industry}
+- 现有文档：${diagnosisContext.existingDocuments.join(', ')}
+
+**生成要求：**
+1. 文档内容要符合${diagnosisContext.standard}标准要求
+2. 结构清晰，层次分明
+3. 内容实用，可操作性强
+4. 与现有文档体系保持一致性
+5. 包含必要的表格、流程图说明
+
+请以JSON格式返回生成结果：
+{
+  "content": "完整的文档内容（markdown格式）",
+  "structure": {
+    "sections": ["章节列表"],
+    "keyPoints": ["关键要点"]
+  },
+  "suggestions": ["使用建议"]
+}`;
 }

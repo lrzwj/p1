@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能文档生成器</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .generator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .generator-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .generator-content {
+            display: grid;
+            grid-template-columns: 1.5fr 2.5fr;  /* 更平衡的比例 */
+            gap: 30px;
+            height: calc(100vh - 200px);
+        }
+        
+        .doc-info-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .generation-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .generation-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .generation-output {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .streaming-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .streaming-indicator.active {
+            display: flex;
+        }
+        
+        .doc-meta {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .doc-meta h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .doc-meta p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .priority-high {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .priority-medium {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .priority-low {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-save {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .btn-edit {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .generation-progress {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .generation-progress.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .generated-content {
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        .generated-content h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0 15px 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            text-indent: 0;
+        }
+        
+        .generated-content h2 {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 18px 0 12px 0;
+            color: #444;
+            text-indent: 0;
+        }
+        
+        .generated-content h3 {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 16px 0 10px 0;
+            color: #555;
+            text-indent: 0;
+        }
+        
+        .generated-content h4 {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 14px 0 8px 0;
+            color: #666;
+            text-indent: 0;
+        }
+        
+        .generated-content p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        
+        .generated-content ul, .generated-content ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        
+        .generated-content li {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+        
+        .generated-content strong {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .generated-content em {
+            font-style: italic;
+            color: #666;
+        }
+        
+        .generated-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #d63384;
+        }
+        
+        .generated-content pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .generated-content pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+        .cursor-blink {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .btn-save-pdf {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .btn-save-pdf:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+        }
+        
+        .save-buttons {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="generator-container">
+        <div class="generator-header">
+            <h1><i class='bx bx-brain'></i> 智能文档生成器</h1>
+            <p>基于AI技术，为您智能生成高质量的质量管理文档</p>
+        </div>
+        
+        <div class="generator-content">
+            <div class="doc-info-panel">
+                <h3><i class='bx bx-info-circle'></i> 文档信息</h3>
+                <div class="doc-meta" id="docMeta">
+                    <!-- 文档信息将在这里动态加载 -->
+                </div>
+                
+                <h4><i class='bx bx-cog'></i> 生成设置</h4>
+                <div class="generation-settings">
+                    <div class="form-group">
+                        <label>生成模式：</label>
+                        <select id="generationMode">
+                            <option value="standard">标准模式</option>
+                            <option value="detailed">详细模式</option>
+                            <option value="concise">简洁模式</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>内容风格：</label>
+                        <select id="contentStyle">
+                            <option value="formal">正式</option>
+                            <option value="practical">实用</option>
+                            <option value="comprehensive">全面</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>包含示例：</label>
+                        <input type="checkbox" id="includeExamples" checked>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="generation-panel">
+                <div class="generation-controls">
+                    <button class="btn-generate" id="startGeneration">
+                        <i class='bx bx-play'></i> 开始生成
+                    </button>
+                    <!-- 修改原有的保存按钮区域 -->
+                    <div class="save-buttons" id="saveButtons" style="display: none;">
+                        <button class="btn-save" id="saveDocx">
+                            <i class='bx bx-file-doc'></i> 保存为DOCX
+                        </button>
+                        <button class="btn-save-pdf" id="savePdf">
+                            <i class='bx bx-file-pdf'></i> 保存为PDF
+                        </button>
+                    </div>
+                    <button class="btn-edit" id="editDocument" style="display: none;">
+                        <i class='bx bx-edit'></i> 编辑文档
+                    </button>
+                </div>
+                
+                <div class="streaming-indicator" id="streamingIndicator">
+                    <i class='bx bx-loader-alt bx-spin'></i>
+                    <span>正在生成文档内容...</span>
+                </div>
+                
+                <div class="generation-progress" id="generationProgress">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                
+                <div class="generation-output" id="generationOutput">
+                    <p style="color: #999; text-align: center; margin-top: 50px;">
+                        <i class='bx bx-file-blank' style="font-size: 48px; display: block; margin-bottom: 15px;"></i>
+                        点击"开始生成"按钮开始智能生成文档内容
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/document-generator.js"></script>
+</body>
+</html>

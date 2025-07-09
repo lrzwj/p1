@@ -1,6 +1,7 @@
 const express = require('express');
 const { setupServer } = require('./config/server');
 const { knowledgeGraph } = require('./config/database');
+const { testConnection, initDatabase } = require('./config/mysql');
 
 // 引入路由模块
 const knowledgeGraphRoutes = require('./routes/knowledge-graph');
@@ -11,6 +12,7 @@ const documentDiagnosisRoutes = require('./routes/document-diagnosis');
 const neo4jRoutes = require('./routes/neo4j');
 const uploadRoutes = require('./routes/upload');
 const dataRoutes = require('./routes/data');
+const { router: authRoutes } = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +21,7 @@ const PORT = process.env.PORT || 3000;
 setupServer(app);
 
 // 注册路由
+app.use('/api/auth', authRoutes);
 app.use('/api', knowledgeGraphRoutes);
 app.use('/api', entitiesRoutes);
 app.use('/api', documentsRoutes);
@@ -32,7 +35,13 @@ app.use('/api', dataRoutes);
 app.listen(PORT, async () => {
     console.log(`服务器运行在端口 ${PORT}`);
     
-    // 测试数据库连接
+    // 测试MySQL数据库连接
+    const mysqlConnected = await testConnection();
+    if (mysqlConnected) {
+        await initDatabase();
+    }
+    
+    // 测试Neo4j数据库连接
     try {
         await knowledgeGraph.testConnection();
         console.log('Neo4j数据库连接成功');

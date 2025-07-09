@@ -127,4 +127,89 @@ router.get('/search/entities', async (req, res) => {
     }
 });
 
+// 创建节点
+router.post('/nodes', async (req, res) => {
+    try {
+        const nodeData = req.body;
+        const result = await knowledgeGraph.createNode(nodeData);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('创建节点失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 更新节点
+router.put('/nodes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        const result = await knowledgeGraph.updateNode(id, updateData);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('更新节点失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 删除节点
+router.delete('/nodes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await knowledgeGraph.deleteNode(id);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('删除节点失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 获取节点详情
+router.get('/nodes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await knowledgeGraph.getNodeDetails(id);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('获取节点详情失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 创建关系
+router.post('/relationships', async (req, res) => {
+    try {
+        const relationshipData = req.body;
+        const result = await knowledgeGraph.createRelationship(relationshipData);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('创建关系失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 更新关系
+router.put('/relationships/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        const result = await knowledgeGraph.updateRelationship(id, updateData);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('更新关系失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 删除关系
+router.delete('/relationships/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await knowledgeGraph.deleteRelationship(id);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('删除关系失败:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
 module.exports = router;

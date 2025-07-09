@@ -7,6 +7,32 @@ class AnalysisService {
         this.DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
     }
 
+    // 添加通用的DeepSeek API调用方法
+    async callDeepSeekAPI(prompt, options = {}) {
+        try {
+            const response = await axios.post(this.DEEPSEEK_API_URL, {
+                model: options.model || "deepseek-chat",
+                messages: [{
+                    role: "user",
+                    content: prompt
+                }],
+                temperature: options.temperature || 0.7,
+                max_tokens: options.max_tokens || 2000
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.DEEPSEEK_API_KEY}`
+                },
+                timeout: options.timeout || 30000
+            });
+
+            return response.data.choices[0].message.content;
+        } catch (error) {
+            console.error('DeepSeek API调用失败:', error);
+            throw new Error(`AI服务调用失败: ${error.message}`);
+        }
+    }
+
     // 分析业务描述
     async analyzeBusinessDescription(description, industry, standard) {
         try {
@@ -86,7 +112,7 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
     }
 
     // 分析业务描述并构建五层知识图谱（改进版）（prompt不再更改，但会自动把行业层识别出来）
-    async analyzeBusinessDescriptionWithLayers(description, industry, standard) {
+    async analyzeBusinessDescriptionWithLayers(description, industry, industryCategory, standard) {
         try {
             const prompt = `
 请基于以下业务描述，按照四层架构进行分析并构建知识图谱：
@@ -142,6 +168,7 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
                     const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
                         layeredData,
                         industry,
+                        industryCategory,
                         standard,
                         enterpriseName  // 传递企业名称
                     );
@@ -169,6 +196,7 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
                         const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
                             layeredData,
                             industry,
+                            industryCategory,
                             standard,
                             enterpriseName
                         );
@@ -184,6 +212,7 @@ ${documentKnowledge.existingDocs.map(d => `- ${d.name}: ${d.description}`).join(
                         const enterpriseInfo = await this.saveLayeredDataToKnowledgeGraph(
                             defaultData,
                             industry,
+                            industryCategory,
                             standard,
                             null
                         );
@@ -918,7 +947,7 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
     }
 
     // 保存五层数据到知识图谱
-    async saveLayeredDataToKnowledgeGraph(layeredData, industry, standard, enterpriseName = null) {
+    async saveLayeredDataToKnowledgeGraph(layeredData, industry, industryCategory, standard, enterpriseName = null) {
         const session = driver.session();
 
         try {
@@ -960,6 +989,18 @@ ${documentRelations.map(r => `- ${r.source} → ${r.target}: ${r.relationship}`)
             `, {
                 industry: industry
             });
+
+            // 3. 创建行业大类节点（如果提供了行业大类）
+            if (industryCategory && industryCategory.trim() !== '') {
+                await session.run(`
+                    MERGE (ic:IndustryCategory {name: $industryCategory})
+                    SET ic.type = $industryCategory,
+                        ic.lastUpdated = datetime()
+                    RETURN ic
+                `, {
+                    industryCategory: industryCategory
+                });
+            }
 
             // 3. 创建或查找企业层节点（基于企业名称去重）
             let enterpriseId;

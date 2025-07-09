@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         return typeNames[type] || '未知视图';
     }
-    // 渲染知识图谱
+    // 在renderGraph函数中添加节点和边的点击事件
     function renderGraph(data) {
         if (!knowledgeGraph) {
             console.error('知识图谱容器未找到');
@@ -201,11 +201,121 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
+            // 添加节点右键菜单
+            cy.on('cxttap', 'node', function(evt) {
+                const node = evt.target;
+                showNodeContextMenu(evt, node);
+            });
+            
+            // 添加边右键菜单
+            cy.on('cxttap', 'edge', function(evt) {
+                const edge = evt.target;
+                showEdgeContextMenu(evt, edge);
+            });
+            
+            // 添加双击编辑功能
+            cy.on('dblclick', 'node', function(evt) {
+                const node = evt.target;
+                editNode(node);
+            });
+            
+            cy.on('dblclick', 'edge', function(evt) {
+                const edge = evt.target;
+                editRelationship(edge);
+            });
+            
+            // 添加空白区域右键菜单（创建新节点）
+            cy.on('cxttap', function(evt) {
+                if (evt.target === cy) {
+                    showCreateNodeMenu(evt);
+                }
+            });
+            
+            // 存储cy实例供其他函数使用
+            window.cyInstance = cy;
+            
             console.log('知识图谱渲染成功');
         } catch (error) {
             console.error('知识图谱渲染失败:', error);
             knowledgeGraph.innerHTML = '<div class="error-message">图谱渲染失败，请检查数据格式</div>';
         }
+    }
+
+    // 显示节点右键菜单
+    function showNodeContextMenu(evt, node) {
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.innerHTML = `
+            <div class="menu-item" onclick="editNode('${node.id()}')">编辑节点</div>
+            <div class="menu-item" onclick="deleteNode('${node.id()}')">删除节点</div>
+            <div class="menu-item" onclick="viewNodeDetails('${node.id()}')">查看详情</div>
+            <div class="menu-item" onclick="createRelationshipFrom('${node.id()}')">创建关系</div>
+        `;
+        
+        menu.style.position = 'absolute';
+        menu.style.left = evt.originalEvent.clientX + 'px';
+        menu.style.top = evt.originalEvent.clientY + 'px';
+        
+        document.body.appendChild(menu);
+        
+        // 点击其他地方关闭菜单
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', closeMenu);
+            });
+        }, 100);
+    }
+
+    // 显示边右键菜单
+    function showEdgeContextMenu(evt, edge) {
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.innerHTML = `
+            <div class="menu-item" onclick="editRelationship('${edge.id()}')">编辑关系</div>
+            <div class="menu-item" onclick="deleteRelationship('${edge.id()}')">删除关系</div>
+        `;
+        
+        menu.style.position = 'absolute';
+        menu.style.left = evt.originalEvent.clientX + 'px';
+        menu.style.top = evt.originalEvent.clientY + 'px';
+        
+        document.body.appendChild(menu);
+        
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', closeMenu);
+            });
+        }, 100);
+    }
+
+    // 显示创建节点菜单
+    function showCreateNodeMenu(evt) {
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.innerHTML = `
+            <div class="menu-item" onclick="createNode()">创建新节点</div>
+        `;
+        
+        menu.style.position = 'absolute';
+        menu.style.left = evt.originalEvent.clientX + 'px';
+        menu.style.top = evt.originalEvent.clientY + 'px';
+        
+        document.body.appendChild(menu);
+        
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', closeMenu);
+            });
+        }, 100);
     }
 
     // 刷新图谱
@@ -423,3 +533,295 @@ cy.on('mouseover', 'node', function(evt) {
         }
     });
 });
+
+    // 创建节点
+    window.createNode = async function() {
+        const modal = createModal('创建节点', `
+            <form id="createNodeForm">
+                <div class="form-group">
+                    <label>节点名称:</label>
+                    <input type="text" id="nodeName" required>
+                </div>
+                <div class="form-group">
+                    <label>节点类型:</label>
+                    <select id="nodeType" required>
+                        <option value="Standard">标准</option>
+                        <option value="Enterprise">企业</option>
+                        <option value="Department">部门</option>
+                        <option value="Process">流程</option>
+                        <option value="Product">产品</option>
+                        <option value="Document">文档</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>描述:</label>
+                    <textarea id="nodeDescription"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">创建</button>
+                    <button type="button" onclick="closeModal()">取消</button>
+                </div>
+            </form>
+        `);
+        
+        document.getElementById('createNodeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nodeData = {
+                label: document.getElementById('nodeType').value,
+                name: document.getElementById('nodeName').value,
+                properties: {
+                    description: document.getElementById('nodeDescription').value
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/knowledge-graph/nodes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nodeData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('节点创建成功', 'success');
+                    closeModal();
+                    refreshGraph();
+                } else {
+                    showNotification('创建失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('创建失败: ' + error.message, 'error');
+            }
+        });
+    };
+
+    // 编辑节点
+    window.editNode = async function(nodeId) {
+        try {
+            // 获取节点详情
+            const response = await fetch(`/api/knowledge-graph/nodes/${nodeId}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                showNotification('获取节点信息失败', 'error');
+                return;
+            }
+            
+            const node = result.data;
+            
+            const modal = createModal('编辑节点', `
+                <form id="editNodeForm">
+                    <div class="form-group">
+                        <label>节点名称:</label>
+                        <input type="text" id="editNodeName" value="${node.label}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>描述:</label>
+                        <textarea id="editNodeDescription">${node.properties.description || ''}</textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit">保存</button>
+                        <button type="button" onclick="closeModal()">取消</button>
+                    </div>
+                </form>
+            `);
+            
+            document.getElementById('editNodeForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const updateData = {
+                    name: document.getElementById('editNodeName').value,
+                    properties: {
+                        description: document.getElementById('editNodeDescription').value
+                    }
+                };
+                
+                try {
+                    const updateResponse = await fetch(`/api/knowledge-graph/nodes/${nodeId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    const updateResult = await updateResponse.json();
+                    
+                    if (updateResult.success) {
+                        showNotification('节点更新成功', 'success');
+                        closeModal();
+                        refreshGraph();
+                    } else {
+                        showNotification('更新失败: ' + updateResult.message, 'error');
+                    }
+                } catch (error) {
+                    showNotification('更新失败: ' + error.message, 'error');
+                }
+            });
+        } catch (error) {
+            showNotification('获取节点信息失败: ' + error.message, 'error');
+        }
+    };
+
+    // 删除节点
+    window.deleteNode = async function(nodeId) {
+        if (!confirm('确定要删除这个节点吗？这将同时删除所有相关的关系。')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/knowledge-graph/nodes/${nodeId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('节点删除成功', 'success');
+                refreshGraph();
+            } else {
+                showNotification('删除失败: ' + result.message, 'error');
+            }
+        } catch (error) {
+            showNotification('删除失败: ' + error.message, 'error');
+        }
+    };
+
+    // 查看节点详情
+    window.viewNodeDetails = async function(nodeId) {
+        try {
+            const response = await fetch(`/api/knowledge-graph/nodes/${nodeId}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                showNotification('获取节点详情失败', 'error');
+                return;
+            }
+            
+            const node = result.data;
+            
+            const connectionsHtml = node.connections.map(conn => 
+                `<li>${conn.connectedNodeName} (${conn.relationshipType})</li>`
+            ).join('');
+            
+            createModal('节点详情', `
+                <div class="node-details">
+                    <h3>${node.label}</h3>
+                    <p><strong>类型:</strong> ${node.type}</p>
+                    <p><strong>描述:</strong> ${node.properties.description || '无'}</p>
+                    <h4>连接关系:</h4>
+                    <ul>${connectionsHtml || '<li>无连接关系</li>'}</ul>
+                    <div class="form-actions">
+                        <button onclick="closeModal()">关闭</button>
+                    </div>
+                </div>
+            `);
+        } catch (error) {
+            showNotification('获取节点详情失败: ' + error.message, 'error');
+        }
+    };
+
+    // 创建关系
+    window.createRelationshipFrom = function(sourceNodeId) {
+        // 获取所有节点作为目标选项
+        const nodes = window.cyInstance.nodes().map(node => ({
+            id: node.id(),
+            label: node.data('label')
+        })).filter(node => node.id !== sourceNodeId);
+        
+        const targetOptions = nodes.map(node => 
+            `<option value="${node.id}">${node.label}</option>`
+        ).join('');
+        
+        const modal = createModal('创建关系', `
+            <form id="createRelationshipForm">
+                <div class="form-group">
+                    <label>目标节点:</label>
+                    <select id="targetNode" required>
+                        <option value="">请选择目标节点</option>
+                        ${targetOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>关系类型:</label>
+                    <input type="text" id="relationshipType" placeholder="如：包含、依赖、关联" required>
+                </div>
+                <div class="form-group">
+                    <label>描述:</label>
+                    <textarea id="relationshipDescription"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">创建</button>
+                    <button type="button" onclick="closeModal()">取消</button>
+                </div>
+            </form>
+        `);
+        
+        document.getElementById('createRelationshipForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const relationshipData = {
+                sourceId: sourceNodeId,
+                targetId: document.getElementById('targetNode').value,
+                type: document.getElementById('relationshipType').value,
+                properties: {
+                    description: document.getElementById('relationshipDescription').value
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/knowledge-graph/relationships', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(relationshipData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('关系创建成功', 'success');
+                    closeModal();
+                    refreshGraph();
+                } else {
+                    showNotification('创建失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('创建失败: ' + error.message, 'error');
+            }
+        });
+    };
+
+    // 刷新图谱
+    function refreshGraph() {
+        if (refreshGraphBtn) {
+            refreshGraphBtn.click();
+        }
+    }
+
+    // 创建模态框
+    function createModal(title, content) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${title}</h3>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        return modal;
+    }
+
+    // 关闭模态框
+    window.closeModal = function() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+    };

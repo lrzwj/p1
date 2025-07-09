@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const targetId = this.getAttribute('href').substring(1);
             
+            // 检查权限
+            if (targetId === 'knowledge' && !authManager.hasPermission('knowledge-graph')) {
+                showNotification('您没有权限访问知识图谱功能', 'error');
+                return;
+            }
+            
             // 更新活动菜单项
             document.querySelectorAll('.sidebar li').forEach(item => {
                 item.classList.remove('active');
@@ -121,6 +127,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 页面导航函数
 function navigateToPage(pageId) {
+    // 检查权限
+    if (pageId === 'knowledge' && !authManager.hasPermission('knowledge-graph')) {
+        showNotification('您没有权限访问知识图谱功能', 'error');
+        return;
+    }
+    
     // 更新活动菜单项
     document.querySelectorAll('.sidebar li').forEach(item => {
         item.classList.remove('active');

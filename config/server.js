@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const multer = require('multer');
+const session = require('express-session');
 const iconv = require('iconv-lite'); // 需要安装这个包
 
 // 配置文件上传
@@ -60,6 +61,17 @@ function setupServer(app) {
     app.use(cors());
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
+    
+    // 添加会话支持
+    app.use(session({
+        secret: 'your-secret-key-here', // 在生产环境中应该使用环境变量
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: false, // 在生产环境中如果使用HTTPS应设为true
+            maxAge: 24 * 60 * 60 * 1000 // 24小时
+        }
+    }));
     
     // 静态文件服务
     app.use(express.static(path.join(__dirname, '../')));
